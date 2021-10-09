@@ -1,4 +1,5 @@
 #!/bin/bash
 
+git push origin head
 bundle exec nanoc
 bundle exec nanoc deploy
