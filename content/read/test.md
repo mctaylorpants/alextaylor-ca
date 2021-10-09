@@ -1,3 +1,7 @@
+---
+title: test
+---
+
 ## Markdown test
 
 What does text look like? This is text.

@@ -5,6 +5,7 @@ GEM
       public_suffix (>= 2.0.2, < 5.0)
     adsf (1.4.6)
       rack (>= 1.0.0, < 3.0.0)
+    byebug (11.1.1)
     colored (1.2)
     concurrent-ruby (1.1.9)
     cri (2.15.11)
@@ -76,6 +77,7 @@ PLATFORMS
 
 DEPENDENCIES
   adsf
+  byebug
   kramdown
   nanoc
   nokogiri
