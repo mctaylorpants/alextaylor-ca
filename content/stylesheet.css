@@ -1,0 +1,48 @@
+html, button, input, select, textarea,
+.pure-g [class *= "pure-u"] {
+    font-family: "Garamond", serif;
+    font-size: large;
+    color: #000000b8;
+}
+
+.l-box {
+  padding: 0 1em;
+}
+
+h1 {
+  color: #ce0e2d;
+}
+
+h1 .light {
+  font-size: 0.7em;
+}
+
+h1 a {
+  color: #ce0e2d;
+  text-decoration: none;
+}
+
+hr {
+  height: 0.2em;
+  border-style: none;
+  background: #ce0e2d;
+}
+
+a {
+  color: #ce0e2d;
+}
+
+.light {
+  color: #0000004f;
+}
+
+.center {
+  text-align: center;
+}
+
+div.highlight {
+  background: rgb(253, 250, 239);
+  margin-left: -1em;
+  padding: 0.5em 1em 0.5em 1em;
+  overflow: scroll;
+}

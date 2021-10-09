@@ -5,23 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="generator" content="Nanoc <%= Nanoc::VERSION %>">
 
-    <title>alextaylor.ca - <%= @item[:title] %></title>
+    <title>alextaylor.ca <%= "- " + @item[:title] if @item[:title] %></title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
     <link rel="stylesheet" href="/stylesheet.css">
     <link rel="stylesheet" href="/code-highlighting.css">
   </head>
   <body>
-    <section class="section">
-      <div class="container">
-        <h1 class="title">
-          Hello World
-        </h1>
-        <p class="subtitle">
-          My first website with <strong>Bulma</strong>!
-        </p>
-        <%= yield %>
+    <div class="pure-g">
+      <div class="pure-u-1">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">&gt;</span> taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
       </div>
-    </section>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <%= yield %>
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="light center">
+            &copy; <%= Date.today.year %> Alex Taylor
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
