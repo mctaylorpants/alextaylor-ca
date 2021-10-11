@@ -24,8 +24,11 @@
         </div>
       </div>
 
-      <div class="pure-u-1">
+      <div class="pure-u-1 content">
         <div class="l-box">
+          <% if item[:title] %>
+            <h1><%= item[:title] %></h1>
+          <% end %>
           <%= yield %>
         </div>
       </div>
