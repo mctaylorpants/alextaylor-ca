@@ -1,5 +1,7 @@
 ---
 title: test
+kind: article
+created_at: 2021-09-03
 ---
 
 ## Markdown test

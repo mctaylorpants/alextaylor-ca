@@ -1,0 +1,13 @@
+<h1>archive</h1>
+
+<% sorted_articles.each do |item| %>
+  <h3 class="post-title">
+    <a href="<%= item.path %>">
+      <%= item[:title] %>
+    </a>
+  </h3>
+  <p class="post-meta">
+    <%= item[:created_at].strftime("%B %-d, %Y") %>
+  </p>
+<% end %>
+

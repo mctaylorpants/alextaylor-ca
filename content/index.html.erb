@@ -1,9 +1,15 @@
----
----
+<p>
+  Hi, I'm <strong>Alex Taylor</strong>! I ♥️ Ruby.
+  I'm a Senior Software Developer at <a href="https://www.clio.com">Clio</a>.
+  I write things here so I don't forget what I've learned.
+</p>
+
+<h2>recent posts:</h2>
 
 <ul>
-  <% @items.find_all(/^\/read\//).each do |item| %>
+  <% sorted_articles.take(10).each do |item| %>
     <li>
+      <%# item[:created_at].strftime("%B %-d, %Y") %>
       <a href="<%= item.path %>">
         <%= item[:title] %>
       </a>
@@ -11,4 +17,5 @@
   <% end %>
 </ul>
 
+<h2><a href="/archive">archive</a></h2>
 

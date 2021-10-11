@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 
-require "byebug"
 compile '/**/*.{html,html.erb}' do
   layout '/default.*'
   filter :erb
@@ -8,7 +7,8 @@ compile '/**/*.{html,html.erb}' do
   if item.identifier =~ '**/index.*'
     write item.identifier.without_ext
   else
-    write item.identifier.without_ext + '/index.html'
+    path = "#{item.identifier.to_s.sub(/\..*$/, "")}/index.html"
+    write path
   end
 end
 
