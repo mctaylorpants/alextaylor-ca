@@ -1,3 +1,8 @@
+.pure-g {
+  margin: 0 auto;
+  max-width: 35em; /* keeps about ~10 words per line on big screens */
+}
+
 html, button, input, select, textarea,
 .pure-g [class *= "pure-u"] {
     font-family: "Garamond", serif;
@@ -5,17 +10,21 @@ html, button, input, select, textarea,
     color: #000000b8;
 }
 
+.header h1 {
+  font-size: 2.5em;
+  font-family: monospace;
+  color: #ce0e2d;
+  margin-bottom: 0;
+}
+
+.header h1 .light {
+  font-size: 1em;
+}
+
 .l-box {
   padding: 0 1em;
 }
 
-h1 {
-  color: #ce0e2d;
-}
-
-h1 .light {
-  font-size: 0.7em;
-}
 
 h1 a {
   color: #ce0e2d;
