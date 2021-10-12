@@ -1,0 +1,261 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - A Deep Dive into CSRF Protection in Rails</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>A Deep Dive into CSRF Protection in Rails</h1>
+          
+          <p><em><a href="https://medium.com/rubyinside/a-deep-dive-into-csrf-protection-in-rails-19fa0a42c0ef">Originally published on Ruby Inside</a>. Updated in June 2019 to reflect code changes in Rails 6</em></p>
+
+<p>If you’re using Rails today, chances are you’re using CSRF protection. It’s been there <a href="https://github.com/rails/rails/commit/4e3ed5bc44f6cd20c9e353ab63fd24b92a7942be">almost since the beginning</a>, and it’s one of those features in Rails that makes your life easier without needing to give it a second thought.</p>
+
+<p>Briefly, Cross-Site Request Forgery (CSRF) is an attack that allows a malicious user to spoof legitimate requests to your server, masquerading as an authenticated user. Rails protects against this kind of attack by generating unique tokens and validating their authenticity with each submission.</p>
+
+<p>Recently, I was working on a feature at Unbounce that required me to think about CSRF protection and how we were handling it in client-side Javascript requests. It was then that I realized how little I actually knew about it, beyond what the acronym stands for!</p>
+
+<p>I decided to do a deep-dive into the Rails codebase to understand how the feature has been implemented. What follows is an exploration of how CSRF protection works in Rails. We’ll look at how the tokens are initially generated for each response, and how they’re used on an incoming request to validate the authenticity of the request.</p>
+
+<h2 id="the-basics">The Basics</h2>
+
+<p>There are two components to CSRF. First, a unique token is embedded in your site’s HTML. That same token is also stored in the session cookie. When a user makes a POST request, the CSRF token from the HTML gets sent with that request. Rails compares the token from the page with the token from the session cookie to ensure they match.</p>
+
+<p><img src="/images/csrf-diagram.png" alt="" class="pure-img"></p>
+
+<h2 id="how-you-use-it">How you use it</h2>
+
+<p>As a Rails developer, you basically get CSRF protection for free. It starts with this single line in <code>application_controller.rb</code>, which enables CSRF protection:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">protect_from_forgery</span> <span class="ss">with: :exception</span>
+</code></pre></div></div>
+
+<p>Next, there’s this single line in <code>application.html.erb</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&lt;</span><span class="sx">%= csrf_meta_tags %&gt;
+</span></code></pre></div></div>
+
+<p>… and that’s it. This has been in Rails for ages, and so we barely need to think about it. But how is this actually implemented under the hood?</p>
+
+<h2 id="generation-and-encryption">Generation and Encryption</h2>
+
+<p>We’ll start with <code>#csrf_meta_tags</code>. It’s a simple view helper that embeds the authenticity token into the HTML:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># actionview/lib/action_view/helpers/csrf_helper.rb</span>
+
+<span class="k">def</span> <span class="nf">csrf_meta_tags</span>
+  <span class="k">if</span> <span class="k">defined?</span><span class="p">(</span><span class="n">protect_against_forgery?</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">protect_against_forgery?</span>
+    <span class="p">[</span>
+      <span class="n">tag</span><span class="p">(</span><span class="s2">"meta"</span><span class="p">,</span> <span class="ss">name: </span><span class="s2">"csrf-param"</span><span class="p">,</span> <span class="ss">content: </span><span class="n">request_forgery_protection_token</span><span class="p">),</span>
+      <span class="n">tag</span><span class="p">(</span><span class="s2">"meta"</span><span class="p">,</span> <span class="ss">name: </span><span class="s2">"csrf-token"</span><span class="p">,</span> <span class="ss">content: </span><span class="n">form_authenticity_token</span><span class="p">)</span>
+    <span class="p">].</span><span class="nf">join</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">).</span><span class="nf">html_safe</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>The <code>csrf-token</code> tag is what we’re going to focus on, since it’s where all the magic happens. That tag helper calls <code>#form_authenticity_token</code> to grab the actual token. At this point, we’ve entered ActionController’s RequestForgeryProtection module. Time to have some real fun!</p>
+
+<p>The RequestForgeryProtection module handles everything to do with CSRF. It’s most famous for the <code>#protect_from_forgery</code> method you see in your ApplicationController, which sets up some hooks to make sure that CSRF validation is triggered on each request, and how to respond if a request isn’t verified. But it also takes care of generating, encrypting and decrypting the CSRF tokens. What I like about this module is its small scope; aside from some view helpers, you can see the whole implementation of CSRF protection right in this single file.</p>
+
+<p>Let’s continue diving into how the CSRF token ends up in your HTML. <code>#form_authenticity_token</code> is a simple wrapper method that passes any optional parameters, as well as the session itself, down into <code>#masked_authenticity_token</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># actionpack/lib/action_controller/metal/request_forgery_protection.rb</span>
+
+<span class="c1"># Sets the token value for the current session.</span>
+<span class="k">def</span> <span class="nf">form_authenticity_token</span><span class="p">(</span><span class="ss">form_options: </span><span class="p">{})</span>
+  <span class="n">masked_authenticity_token</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="ss">form_options: </span><span class="n">form_options</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Creates a masked version of the authenticity token that varies</span>
+<span class="c1"># on each request. The masking is used to mitigate SSL attacks</span>
+<span class="c1"># like BREACH.</span>
+<span class="k">def</span> <span class="nf">masked_authenticity_token</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="ss">form_options: </span><span class="p">{})</span> <span class="c1"># :doc:</span>
+  <span class="c1"># ...</span>
+  <span class="n">raw_token</span> <span class="o">=</span> <span class="k">if</span> <span class="n">per_form_csrf_tokens</span> <span class="o">&amp;&amp;</span> <span class="n">action</span> <span class="o">&amp;&amp;</span> <span class="nb">method</span>
+    <span class="c1"># ...</span>
+  <span class="k">else</span>
+    <span class="n">real_csrf_token</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="n">one_time_pad</span> <span class="o">=</span> <span class="no">SecureRandom</span><span class="p">.</span><span class="nf">random_bytes</span><span class="p">(</span><span class="no">AUTHENTICITY_TOKEN_LENGTH</span><span class="p">)</span>
+  <span class="n">encrypted_csrf_token</span> <span class="o">=</span> <span class="n">xor_byte_strings</span><span class="p">(</span><span class="n">one_time_pad</span><span class="p">,</span> <span class="n">raw_token</span><span class="p">)</span>
+  <span class="n">masked_token</span> <span class="o">=</span> <span class="n">one_time_pad</span> <span class="o">+</span> <span class="n">encrypted_csrf_token</span>
+  <span class="no">Base64</span><span class="p">.</span><span class="nf">strict_encode64</span><span class="p">(</span><span class="n">masked_token</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Since the introduction of <a href="http://edgeguides.rubyonrails.org/upgrading_ruby_on_rails.html#per-form-csrf-tokens">per-form CSRF tokens in Rails 5</a>, the <code>#masked_authenticity_token</code> method has gotten a bit more complex. For the purposes of this exploration, we’re going to focus on the original implementation, a single CSRF token per request - the one that ends up in the <code>meta</code> tag. In that case, we can just focus on the <code>else</code> branch of the conditional above, which ends up setting raw_token to the return value of <code>#real_csrf_token</code>.</p>
+
+<p>Why do we pass <code>session</code> into <code>#real_csrf_token?</code> Because this method actually does two things: it generates the raw, unencrypted token, and it stuffs that token into the session cookie:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># actionpack/lib/action_controller/metal/request_forgery_protection.rb</span>
+
+<span class="k">def</span> <span class="nf">real_csrf_token</span><span class="p">(</span><span class="n">session</span><span class="p">)</span> <span class="c1"># :doc:</span>
+  <span class="n">session</span><span class="p">[</span><span class="ss">:_csrf_token</span><span class="p">]</span> <span class="o">||=</span> <span class="no">SecureRandom</span><span class="p">.</span><span class="nf">base64</span><span class="p">(</span><span class="no">AUTHENTICITY_TOKEN_LENGTH</span><span class="p">)</span>
+  <span class="no">Base64</span><span class="p">.</span><span class="nf">strict_decode64</span><span class="p">(</span><span class="n">session</span><span class="p">[</span><span class="ss">:_csrf_token</span><span class="p">])</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Remember that this method is ultimately being called because we invoked <code>#csrf_meta_tags</code> in our application layout. This is classic Rails Magic - a clever side effect that guarantees the token in the session cookie will always match the token on the page, because rendering the token to the page can’t happen without inserting that same token into the cookie.</p>
+
+<p>Anyway, let’s take a look at the bottom of <code>#masked_authenticity_token</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="n">one_time_pad</span> <span class="o">=</span> <span class="no">SecureRandom</span><span class="p">.</span><span class="nf">random_bytes</span><span class="p">(</span><span class="no">AUTHENTICITY_TOKEN_LENGTH</span><span class="p">)</span>
+  <span class="n">encrypted_csrf_token</span> <span class="o">=</span> <span class="n">xor_byte_strings</span><span class="p">(</span><span class="n">one_time_pad</span><span class="p">,</span> <span class="n">raw_token</span><span class="p">)</span>
+  <span class="n">masked_token</span> <span class="o">=</span> <span class="n">one_time_pad</span> <span class="o">+</span> <span class="n">encrypted_csrf_token</span>
+  <span class="no">Base64</span><span class="p">.</span><span class="nf">strict_encode64</span><span class="p">(</span><span class="n">masked_token</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Time for some cryptography. Having already inserted the token into the session cookie, this method now concerns itself with returning the token that will end up in plaintext HTML, and here we take some precautions (mainly to <a href="https://github.com/rails/rails/pull/16570">mitigate the possibility of an SSL BREACH attack</a>, which I won’t go into here). Note that we didn’t encrypt the token that goes into the session cookie, because as of Rails 4 the session cookie itself will be encrypted.</p>
+
+<p>First, we generate a one-time pad that we’ll use to encrypt the raw token. A <a href="https://en.wikipedia.org/wiki/One-time_pad">one-time pad</a> is a cryptographic technique that uses a randomly-generated key to encrypt a plaintext message of the same length, and requires the key to be used to decrypt the message. It’s called a “one-time” pad for a reason: each key is used for a single message, and then discarded. Rails implements this by generating a new one-time pad for every new CSRF token, then uses it to encrypt the plaintext token using the XOR bitwise operation. The one-time pad string is prepended to the encrypted string, then Base64-encoded to make the string ready for HTML.</p>
+
+<p><img src="/images/csrf-encryption.png" alt="CSRF encryption" class="pure-img"></p>
+
+<p>Once this operation is complete, we send the masked authenticity token back up the stack, where it ends up in the rendered application layout:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&lt;</span><span class="n">meta</span> <span class="nb">name</span><span class="o">=</span><span class="s2">"csrf-param"</span> <span class="n">content</span><span class="o">=</span><span class="s2">"authenticity_token"</span> <span class="o">/&gt;</span>
+<span class="o">&lt;</span><span class="n">meta</span> <span class="nb">name</span><span class="o">=</span><span class="s2">"csrf-token"</span> <span class="n">content</span><span class="o">=</span><span class="s2">"vtaJFQ38doX0b7wQpp0G3H7aUk9HZQni3jHET4yS8nSJRt85Tr6oH7nroQc01dM+C/dlDwt5xPff5LwyZcggeg=="</span> <span class="o">/&gt;</span>
+</code></pre></div></div>
+
+<h2 id="decryption-and-verification">Decryption and verification</h2>
+
+<p>So far, we’ve covered how the CSRF token is generated, and how it ends up in your HTML and cookie. Next, let’s look at how Rails validates an incoming request.</p>
+
+<p>When a user submits a form on your site, the CSRF token is sent along with the rest of the form data (a param called <code>authenticity_token</code> by default). It can also be sent via the <code>X-CSRF-Token</code> HTTP header.</p>
+
+<p>Recall this line in our ApplicationController:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">protect_from_forgery</span> <span class="ss">with: :exception</span>
+</code></pre></div></div>
+
+<p>Among other things, this <code>#protect_from_forgery</code> method adds a before-action to the lifecycle of every controller action:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">before_action</span> <span class="ss">:verify_authenticity_token</span><span class="p">,</span> <span class="n">options</span>
+</code></pre></div></div>
+
+<p>This before action begins the process of comparing the CSRF token in the request params or header with the token in the session cookie:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># actionpack/lib/action_controller/metal/request_forgery_protection.rb</span>
+
+<span class="k">def</span> <span class="nf">verify_authenticity_token</span> <span class="c1"># :doc:</span>
+  <span class="c1"># ...</span>
+  <span class="k">if</span> <span class="o">!</span><span class="n">verified_request?</span>
+    <span class="c1"># handle errors ...</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">verified_request?</span> <span class="c1"># :doc:</span>
+  <span class="o">!</span><span class="n">protect_against_forgery?</span> <span class="o">||</span> <span class="n">request</span><span class="p">.</span><span class="nf">get?</span> <span class="o">||</span> <span class="n">request</span><span class="p">.</span><span class="nf">head?</span> <span class="o">||</span>
+    <span class="p">(</span><span class="n">valid_request_origin?</span> <span class="o">&amp;&amp;</span> <span class="n">any_authenticity_token_valid?</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>After performing some administrative tasks (we don’t need to verify HEAD or GET requests, for example), our verification process begins in earnest with the call to <code>#any_authenticity_token_valid?</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">any_authenticity_token_valid?</span> <span class="c1"># :doc:</span>
+  <span class="n">request_authenticity_tokens</span><span class="p">.</span><span class="nf">any?</span> <span class="k">do</span> <span class="o">|</span><span class="n">token</span><span class="o">|</span>
+    <span class="n">valid_authenticity_token?</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Since a request can pass the token in form params or as a header, Rails just requires that at least one of those tokens match the token in the session cookie.</p>
+
+<p><code>#valid_authenticity_token?</code> is a pretty long method, but ultimately it’s just doing the inverse of <code>#masked_authenticity_token</code> in order to decrypt and compare the token:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">valid_authenticity_token?</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">encoded_masked_token</span><span class="p">)</span> <span class="c1"># :doc:</span>
+  <span class="c1"># ...</span>
+
+  <span class="k">begin</span>
+    <span class="n">masked_token</span> <span class="o">=</span> <span class="no">Base64</span><span class="p">.</span><span class="nf">strict_decode64</span><span class="p">(</span><span class="n">encoded_masked_token</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="no">ArgumentError</span> <span class="c1"># encoded_masked_token is invalid Base64</span>
+    <span class="k">return</span> <span class="kp">false</span>
+  <span class="k">end</span>
+
+  <span class="k">if</span> <span class="n">masked_token</span><span class="p">.</span><span class="nf">length</span> <span class="o">==</span> <span class="no">AUTHENTICITY_TOKEN_LENGTH</span>
+    <span class="c1"># ...</span>
+
+  <span class="k">elsif</span> <span class="n">masked_token</span><span class="p">.</span><span class="nf">length</span> <span class="o">==</span> <span class="no">AUTHENTICITY_TOKEN_LENGTH</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="n">csrf_token</span> <span class="o">=</span> <span class="n">unmask_token</span><span class="p">(</span><span class="n">masked_token</span><span class="p">)</span>
+
+    <span class="n">compare_with_real_token</span><span class="p">(</span><span class="n">csrf_token</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span> <span class="o">||</span>
+      <span class="n">valid_per_form_csrf_token?</span><span class="p">(</span><span class="n">csrf_token</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+  <span class="k">else</span>
+    <span class="kp">false</span> <span class="c1"># Token is malformed.</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>First, we need to take the Base64-encoded string and decode it to end up with the “masked token”. From here, we unmask the token and then compare it to the token in the session:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">unmask_token</span><span class="p">(</span><span class="n">masked_token</span><span class="p">)</span> <span class="c1"># :doc:</span>
+  <span class="n">one_time_pad</span> <span class="o">=</span> <span class="n">masked_token</span><span class="p">[</span><span class="mi">0</span><span class="o">...</span><span class="no">AUTHENTICITY_TOKEN_LENGTH</span><span class="p">]</span>
+  <span class="n">encrypted_csrf_token</span> <span class="o">=</span> <span class="n">masked_token</span><span class="p">[</span><span class="no">AUTHENTICITY_TOKEN_LENGTH</span><span class="o">..-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">xor_byte_strings</span><span class="p">(</span><span class="n">one_time_pad</span><span class="p">,</span> <span class="n">encrypted_csrf_token</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Before <code>#unmask_token</code> can perform the cryptography magic necessary to decrypt the token, we have to split the masked token into its requisite parts: the one-time pad, and the encrypted token itself. Then, it XORs the two strings to finally produce the plaintext token.</p>
+
+<p>Finally, <code>#compare_with_real_token</code> relies on ActiveSupport::SecureUtils to ensure the tokens are a match:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">compare_with_real_token</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span> <span class="c1"># :doc:</span>
+  <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">SecurityUtils</span><span class="p">.</span><span class="nf">fixed_length_secure_compare</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">real_csrf_token</span><span class="p">(</span><span class="n">session</span><span class="p">))</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>And, at last, our request is authorized - you shall pass!</p>
+
+<hr>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>I had never given too much thought to CSRF protection before, since like so many other things in Rails, it “just works”. Every once in awhile, it’s fun to peek behind the magic curtain and see what’s actually going on.</p>
+
+<p>I think the implementation of CSRF protection is a great example of separation of responsibilities in a codebase. By creating a single module and exposing a small, consistent public interface, the implementation underneath is free to change with little to no impact to the rest of the codebase — and you can see this in action as the Rails team has added new features to CSRF protection over the years, such as per-form tokens.</p>
+
+<p>I learn so much every time I dive into the Rails codebase. I hope this inspires you to peek under the hood yourself next time you encounter some Rails magic!</p>
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

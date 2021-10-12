@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - Run specific RSpec examples with -e</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>Run specific RSpec examples with -e</h1>
+          
+          <p>I’ve been using RSpec for years, but I had no idea about this flag until a coworker pointed it out today.</p>
+
+<p>You can use <code>bin/rspec -e</code> to run examples whose name matches a particular string:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">-e</span>, <span class="nt">--example</span> STRING
+  Run examples whose full nested names include STRING <span class="o">(</span>may be
+  used more than once<span class="o">)</span>
+
+<span class="nt">-E</span>, <span class="nt">--example-matches</span> REGEX
+  Run examples whose full nested names match REGEX <span class="o">(</span>may be
+  used more than once<span class="o">)</span>
+</code></pre></div></div>
+
+<p>When is this useful? The place where I found it useful was a spec which we dynamically generate to run shitlists,
+which help us keep bad/outdated code patterns under control.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># spec/shitlists_spec.rb</span>
+
+  <span class="no">SHITLISTS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="no">DeprecatedMethodsShitlist</span><span class="p">,</span>
+    <span class="no">EnsureStringColumnsLengthsValidatedShitlist</span><span class="p">,</span>
+    <span class="no">ExecutableFilesShitlist</span><span class="p">,</span>
+    <span class="o">...</span>
+  <span class="p">]</span>
+
+  <span class="no">SHITLISTS</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">shitlist</span><span class="o">|</span>
+    <span class="no">RSpec</span><span class="p">.</span><span class="nf">describe</span> <span class="n">shitlist</span> <span class="k">do</span>
+      <span class="n">it</span> <span class="k">do</span>
+        <span class="n">expect</span><span class="p">(</span><span class="n">described_class</span><span class="p">).</span><span class="nf">to</span> <span class="n">have_no_violations</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+</code></pre></div></div>
+
+<p>This spec generates a bunch of examples dynamically. Running <code>bin/rspec -e ExecutableFilesShitlist spec/shitlists_spec.rb</code> will
+only run the one generated for <code>ExecutableFilesShitlist</code>, which saves a ton of time if you don’t need to run the rest of them!</p>
+
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
