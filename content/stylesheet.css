@@ -66,12 +66,16 @@ a {
   color: #0000004f;
 }
 
-div.highlight {
-  background: rgb(253, 250, 239);
+pre {
   margin-left: -1em;
   padding: 0.5em 1em 0.5em 1em;
   overflow: scroll;
+  background: rgb(253, 250, 239);
+}
+
+code {
   font-size: 0.8em;
+  background: rgb(253, 250, 239);
 }
 
 .post-title {
