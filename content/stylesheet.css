@@ -3,15 +3,19 @@
   max-width: 35em; /* keeps about ~10 words per line on big screens */
 }
 
+.pure-img {
+  margin: 0 auto;
+}
+
 html, button, input, select, textarea,
 .pure-g [class *= "pure-u"] {
-    font-family: "Garamond", serif;
+    font-family: "Georgia", serif;
     font-size: large;
     color: #000000b8;
 }
 
 p {
-  line-height: 1.5em;
+  line-height: 1.6em;
 }
 
 h2 {
