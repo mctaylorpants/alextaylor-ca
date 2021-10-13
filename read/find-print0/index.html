@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - find with -print0</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>find with -print0</h1>
+          
+          <p>I like using <code>find</code> with <code>xargs</code> and <code>perl</code> to do find-and-replace. Like this:</p>
+
+<pre><code>$&gt; find . -type f | xargs perl -p -i -e "s/old_string/new_string"
+</code></pre>
+
+<p>This works great, until you have filenames with spaces in them. Because <code>xargs</code> usually splits on newlines and/or spaces, a filename with a space will appear to <code>xargs</code> as two files:</p>
+
+<pre><code>$&gt; ls -l find_test
+total 16
+-rw-r--r--  1 alextaylor  staff  11 13 Oct 15:17 I have spaces
+-rw-r--r--  1 alextaylor  staff  11 13 Oct 15:18 i_have_underscores
+
+$&gt; find find_test/ -type f | xargs perl -p -i -e "s/old_string/new_string/"
+Can't open find_test//I: No such file or directory, &lt;&gt; line 1.
+Can't open have: No such file or directory, &lt;&gt; line 1.
+Can't open spaces: No such file or directory, &lt;&gt; line 1.
+</code></pre>
+
+<p>What to do?</p>
+
+<h2 id="print0-to-the-rescue">
+<code>-print0</code> to the rescue</h2>
+
+<p>Using <code>find</code>’s <code>-print0</code> option will separate filenames with a null character, and <code>xargs</code> has a complementary <code>-0</code> character that will interpret these:</p>
+
+<pre><code>$&gt; find find_test/ -type f -print0 | xargs -0 perl -p -i -e "s/old_string/new_string/"
+
+# nothing to show... it worked!
+</code></pre>
+
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
