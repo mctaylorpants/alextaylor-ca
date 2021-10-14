@@ -28,7 +28,11 @@
         <div class="l-box">
           
             <h1>find with -print0</h1>
+            <p class="post-meta">
+              October 13, 2021
+            </p>
           
+
           <p>I like using <code>find</code> with <code>xargs</code> and <code>perl</code> to do find-and-replace. Like this:</p>
 
 <pre><code>$&gt; find . -type f | xargs perl -p -i -e "s/old_string/new_string"
