@@ -26,9 +26,13 @@
 
       <div class="pure-u-1 content">
         <div class="l-box">
-          <% if item[:title] %>
+          <% if item[:kind] == "article" %>
             <h1><%= item[:title] %></h1>
+            <p class="post-meta">
+              <%= item[:created_at].strftime("%B %-d, %Y") %>
+            </p>
           <% end %>
+
           <%= yield %>
         </div>
       </div>
