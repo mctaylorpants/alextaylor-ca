@@ -1,0 +1,209 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - A Weird and Wonderful Trip through Ruby’s Standard Library</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>A Weird and Wonderful Trip through Ruby’s Standard Library</h1>
+            <p class="post-meta">
+              December 2, 2018
+            </p>
+          
+
+          <p><em>Originally published on <a href="https://medium.com/rubyinside/a-weird-and-wonderful-trip-through-rubys-standard-library-762ddcf7a908">Ruby Inside</a></em></p>
+
+<p><img src="/images/keep-ruby-weird.png" alt="" class="pure-img"></p>
+
+<p>You’ve probably heard the news by now — <a href="http://engineering.appfolio.com/appfolio-engineering/2018/11/26/bundler-is-built-into-ruby-260preview3">Bundler is getting merged into Ruby core</a>! It’s great to see that projects like Bundler, which have become so central to the Ruby experience, are becoming part of Ruby in a deep way.</p>
+
+<p>It also got me thinking: what else is in there? I use Ruby primarily for writing web applications, but Ruby’s rich history as a scripting language means that there’s lots of functionality I don’t use every day, and probably lots that I don’t even know existed.</p>
+
+<p>So, I decided to find out. I spent some time looking through the <a href="https://ruby-doc.org/stdlib-2.5.3/">standard library documentation</a>, keeping my eyes peeled for things I didn’t recognize. I found some pretty weird and wonderful things, and I wanted to share some of my favourites.</p>
+
+<p>Ready for some contrived examples? Let’s go!</p>
+
+<h2 id="shellwords">Shellwords</h2>
+
+<p>First up: the <code>Shellwords</code> module. It provides a few nice methods which make it easier to build and parse shell commands from within Ruby.</p>
+
+<p>For example: let’s say you have a filename with an apostrophe in it, and you want to use <code>cat</code> to get the contents of the file. (I did say these were contrived, didn’t I? 😉)</p>
+
+<p>You could do something like this:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="n">filename</span> <span class="o">=</span> <span class="s2">"Alex's Notes.txt"</span>
+<span class="vg">$&gt;</span> <span class="sb">`cat </span><span class="si">#{</span><span class="n">filename</span><span class="si">}</span><span class="sb">`</span>
+</code></pre></div></div>
+
+<p>But bash doesn’t like unescaped single quotes, so you end up with an error:</p>
+
+<pre><code>sh: -c: line 0: unexpected EOF while looking for matching `''
+sh: -c: line 1: syntax error: unexpected end of file
+=&gt; ""
+</code></pre>
+
+<p>Never fear! <code>#shellescape</code> is here!</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="sb">`cat </span><span class="si">#{</span><span class="n">filename</span><span class="p">.</span><span class="nf">shellescape</span><span class="si">}</span><span class="sb">`</span>
+<span class="o">=&gt;</span> <span class="s2">"Apostrophes in a filename? 🤔"</span>
+</code></pre></div></div>
+
+<p>Hurray, your problem is solved! Although you might want to have a chat with whoever put that apostrophe there in the first place…</p>
+
+<h2 id="english-for-when-you-want-less-">English: for when you want less $$</h2>
+
+<p>Pop quiz: what does <code>$$</code> return?</p>
+
+<p>If your answer is “why, the current process ID, of course!”, then I suppose you can skip this section.</p>
+
+<p>For the rest of us, Ruby’s <code>$$</code> is an homage to Perl, and returns the ID of the current system process. But it’s not the most developer-friendly of names, so Ruby’s <code>English</code> module provides some helpful aliases: <code>$PROCESS_ID</code> and <code>$PID</code>.</p>
+
+<p>This is a pretty small thing, but I think it’s a perfect example of Matz’s original goal with Ruby, which was to create a language that’s understood by humans first and computers second.</p>
+
+<p><code>English</code> provides a handful of these aliases. Another useful one is <code>$CHILD_STATUS</code>, which will return the exit code of the last shell command:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="sb">`exit 42`</span>
+<span class="o">=&gt;</span> <span class="s2">""</span>
+
+<span class="vg">$&gt;</span> <span class="vg">$CHILD_STATUS</span>   <span class="c1"># or $? for the purists</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Process::Status: pid 25566 exit 42&gt;</span>
+</code></pre></div></div>
+
+<h2 id="prime">Prime</h2>
+
+<p>If you require the <code>Prime</code> module, Ruby can tell you if a number is prime:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="mi">5</span><span class="p">.</span><span class="nf">prime?</span>
+<span class="o">=&gt;</span> <span class="kp">true</span>
+</code></pre></div></div>
+
+<p>Ok, cool.</p>
+
+<p>But did you know that Ruby has not one, not two, but <em>two-and-a-half*</em> implementations for determining the primality of a number?</p>
+
+<p>First up, there’s <code>TrialDivision</code>, a brute-force approach which divides the number in question by other smaller numbers until it has a definitive answer.</p>
+
+<p>There’s also <code>EratosthenesSieve</code>, which as you can probably tell from the name, was invented over 2,000 years ago by a Greek mathematician. Go figure!</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="no">Prime</span><span class="o">::</span><span class="no">EratosthenesGenerator</span><span class="p">.</span><span class="nf">new</span><span class="p">.</span><span class="nf">take</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">29</span><span class="p">]</span>
+<span class="vg">$&gt;</span> <span class="no">Prime</span><span class="p">.</span><span class="nf">take</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>   <span class="c1"># uses Eratosthenes under the hood, by default</span>
+<span class="o">=&gt;</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">29</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>*Last, and probably least — this is why there’s only two and a half, after all — we have <code>Generator23</code>. This is a special one, because it doesn’t actually generate prime numbers, but rather numbers which are not divisible by 2 or 3. This is a clever optimization invented by Mathematicians to make validating a prime more memory-efficient. As such, this generator is used by <code>#prime?</code>, along with some additional computations, to check primality.</p>
+
+<h2 id="abbrev">Abbrev</h2>
+
+<p>This is probably the weirdest and most wonderful module I found in my spelunking. According to the docs, <code>Abbrev</code>:</p>
+
+<blockquote>
+  <p>Calculates the set of unique abbreviations for a given set of strings.</p>
+</blockquote>
+
+<p>Interesting… let’s see it in action:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="nb">require</span> <span class="s1">'abbrev'</span>
+<span class="o">=&gt;</span> <span class="kp">true</span>
+
+<span class="vg">$&gt;</span> <span class="o">%</span><span class="n">w</span><span class="p">(</span><span class="n">ruby</span> <span class="n">rules</span><span class="p">).</span><span class="nf">abbrev</span>
+<span class="o">=&gt;</span> <span class="p">{</span>
+     <span class="s2">"ruby"</span><span class="o">=&gt;</span><span class="s2">"ruby"</span><span class="p">,</span>
+     <span class="s2">"rub"</span><span class="o">=&gt;</span><span class="s2">"ruby"</span><span class="p">,</span>
+     <span class="s2">"rules"</span><span class="o">=&gt;</span><span class="s2">"rules"</span><span class="p">,</span>
+     <span class="s2">"rule"</span><span class="o">=&gt;</span><span class="s2">"rules"</span><span class="p">,</span>
+     <span class="s2">"rul"</span><span class="o">=&gt;</span><span class="s2">"rules"</span>
+   <span class="p">}</span>
+</code></pre></div></div>
+
+<p>Give <code>Abbrev</code> an array of strings, and it will give you a hash where those words become the values, and each key is a way of unambiguously referring to that word. In the example above, since both words start with “ru”, we have to get more specific if we want to refer to one or the other.</p>
+
+<p>This module is arguably limited in its use cases, but it’s elegant and wonderful nonetheless. I just love that data structure: taking advantage of a hash’s unique keys and having it point back to the original word? 👌👌</p>
+
+<p>The only uses of <code>Abbrev</code> I can find are in <a href="https://docs.ruby-lang.org/en/2.1.0/RDoc/RI/Driver.html#method-i-expand_class"><code>RDoc</code></a>, and <a href="https://github.com/ruby/ruby/blob/trunk/tool/redmine-backporter.rb#L578">a miscellaneous script in Ruby core</a>, but I imagine one could put it to good use in things that need command-line autocompletion.</p>
+
+<p>Or, you could use it to write your very own Unambiguous Nickname Generator!</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="n">names</span> <span class="o">=</span> <span class="sx">%w(Alex Amy Ayla Amanda)</span>
+<span class="vg">$&gt;</span> <span class="n">names</span><span class="p">.</span><span class="nf">abbrev</span><span class="p">.</span><span class="nf">keys</span><span class="p">.</span><span class="nf">select</span> <span class="p">{</span> <span class="o">|</span><span class="n">n</span><span class="o">|</span> <span class="n">n</span><span class="p">.</span><span class="nf">length</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="p">}</span>
+
+<span class="o">=&gt;</span> <span class="p">[</span><span class="s2">"Alex"</span><span class="p">,</span> <span class="s2">"Ale"</span><span class="p">,</span> <span class="s2">"Amy"</span><span class="p">,</span> <span class="s2">"Ayla"</span><span class="p">,</span> <span class="s2">"Ayl"</span><span class="p">,</span> <span class="s2">"Amanda"</span><span class="p">,</span> <span class="s2">"Amand"</span><span class="p">,</span> <span class="s2">"Aman"</span><span class="p">,</span> <span class="s2">"Ama"</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>From now on, call me Ale. 🍻</p>
+
+<h2 id="last-but-not-least">Last, but not least…</h2>
+
+<p>Chances are you’ve made an HTTP request from your Ruby program at some point. You probably used <code>Net::HTTP</code> (or maybe another gem that uses it under the hood).</p>
+
+<p>But let me ask you this — have you ever checked your e-mail with Ruby?</p>
+
+<p>🥁 🥁 🥁</p>
+
+<p>Introducing <code>Net::POP3</code>!</p>
+
+<p>That’s right, you can check your e-mail without ever leaving IRB:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="n">inbox</span> <span class="o">=</span> <span class="no">Net</span><span class="o">::</span><span class="no">POP3</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s1">'pop.gmail.com'</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Net::POP3 pop.gmail.com: open=false&gt;</span>
+
+<span class="vg">$&gt;</span> <span class="n">inbox</span><span class="p">.</span><span class="nf">start</span><span class="p">(</span><span class="s1">'your-email-here@gmail.com'</span><span class="p">,</span> <span class="s1">'supersecret'</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Net::POP3 pop.gmail.com: open=true&gt;</span>
+
+<span class="vg">$&gt;</span> <span class="n">inbox</span><span class="p">.</span><span class="nf">each_mail</span> <span class="p">{</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span> <span class="nb">puts</span> <span class="n">m</span><span class="p">.</span><span class="nf">pop</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">).</span><span class="nf">grep</span><span class="p">(</span><span class="sr">/Subject/</span><span class="p">)</span> <span class="p">}</span>
+<span class="no">Subject</span><span class="p">:</span> <span class="no">Hello</span> <span class="no">IRB</span><span class="o">!</span>
+
+<span class="vg">$&gt;</span> <span class="n">pop</span><span class="p">.</span><span class="nf">finish</span>
+<span class="o">=&gt;</span> <span class="s2">"+OK Farewell."</span>
+</code></pre></div></div>
+
+<hr>
+
+<p><img src="/images/i-heart-ruby.png" alt="" class="pure-img"></p>
+
+<hr>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>What a ride! I hope I’ve opened your mind to some new possibilities with the language you know and love. I certainly learned a ton, and digging into these weird, dusty corners of Ruby just makes me love it even more. ❤️</p>
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -70,6 +70,10 @@ a {
   color: #0000004f;
 }
 
+blockquote {
+  font-style: italic;
+}
+
 pre {
   margin-left: -1em;
   padding: 0.5em 1em 0.5em 1em;

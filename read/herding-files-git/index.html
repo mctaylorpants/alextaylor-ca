@@ -1,0 +1,215 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - Herding Files — and goats — with git</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>Herding Files — and goats — with git</h1>
+            <p class="post-meta">
+              February 27, 2020
+            </p>
+          
+
+          <p><em>Originally published on <a href="https://labs.clio.com/herding-files-and-goats-with-git-a2b70c0e787a">Clio Labs</a></em></p>
+
+<p><code>git</code> is a wonderful tool for version control. As codebases grow and evolve, the history that builds up with each successive change becomes crucial to understanding past decisions in order to refactor code.</p>
+
+<p>Normally, you don’t need to think much about how git keeps track of your changes — you commit, you push, and you’re done. But if you’re refactoring code in a way that involves renaming files, you need to exercise caution to avoid accidentally clobbering the history.</p>
+
+<p>So how can you safely refactor your code and shuffle files about, keeping all of that precious history in the process?</p>
+
+<p>I’m about to tell you. And I’m going to use goats.</p>
+
+<h2 id="a-tribe-of-goats">A tribe of goats</h2>
+
+<p>Let’s imagine we have a tribe of goats. These are mountain goats, so they live on a mountain. <a href="https://www.grousemountain.com/">Grouse Mountain</a>, to be exact.</p>
+
+<p><img src="/images/goats.png" alt="" class="pure-img"></p>
+
+<p>Here’s what one of our goats look like under the hood:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># app/models/goat.rb</span>
+<span class="k">class</span> <span class="nc">Goat</span>
+  <span class="k">def</span> <span class="nf">call</span>
+    <span class="s2">"mbaaaahhh"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>You can’t tell by looking at it, but these goats are <em>definitely</em> on Grouse Mountain. We know that because for a long time, Grouse Mountain was the only mountain with goats, so we saw no reason to be explicit about it anywhere in our code.</p>
+
+<p>However, let’s say we recently acquired a new tribe of goats. These goats live on <a href="https://www.bigbearmountainresort.com/">Bear Mountain</a>, near Los Angeles. (It’s unclear why goats chose to live on a mountain named after bears, but we won’t get into that.)</p>
+
+<p>What we’re concerned about is making sure we keep these goats separated at first, so they don’t steal each other’s food and start an inter-mountain goat war.</p>
+
+<p>To do that, let’s wrap our Grouse Mountain-living goat in a module so we can tell them apart:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># app/models/goat.rb</span>
+<span class="k">module</span> <span class="nn">Grouse</span>
+  <span class="k">class</span> <span class="nc">Goat</span>
+    <span class="k">def</span> <span class="nf">call</span>
+      <span class="s2">"mbaaaahhh"</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Since we like our file paths to match our class names, we should also move this goat into another directory:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> <span class="nb">mkdir</span> <span class="nt">-p</span> mountains/grouse/app/models/grouse
+<span class="nv">$&gt;</span> <span class="nb">mv </span>app/models/goat.rb mountains/grouse/app/models/grouse/
+</code></pre></div></div>
+
+<p>Now, all that’s left to do is commit these changes. But first, let’s have some fun!</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> <span class="nb">alias </span><span class="nv">goat</span><span class="o">=</span>git
+
+<span class="nv">$&gt;</span> goat add <span class="nb">.</span>
+<span class="nv">$&gt;</span> goat status
+
+On branch goat-namespace
+Changes to be committed:
+  <span class="o">(</span>use <span class="s2">"git restore --staged &lt;file&gt;..."</span> to unstage<span class="o">)</span>
+ deleted:    app/models/goat.rb
+ new file:   mountains/grouse/app/models/grouse/goat.rb
+</code></pre></div></div>
+
+<p>Hmm, this is a bit of a red flag. <code>git</code> thinks that we’ve deleted our original class, and made an entirely new one in another location. Let’s keep going and see what happens:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> goat commit <span class="nt">-m</span> <span class="s2">"move the goat"</span>
+<span class="o">[</span>goat-namespace aa6d0f5] move the goat
+ 2 files changed, 7 insertions<span class="o">(</span>+<span class="o">)</span>, 5 deletions<span class="o">(</span>-<span class="o">)</span>
+ delete mode 100644 app/models/goat.rb
+ create mode 100644 mountains/grouse/app/models/grouse/goat.rb
+</code></pre></div></div>
+
+<p>Now, being responsible goat herders, history is important to us; we want to look back on all the happy moments we’ve shared with our goats over the years. Can we still do that?</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> goat log —-oneline mountains/grouse/app/models/grouse/goat.rb
+
+<span class="c"># (SHAs edited for brevity)</span>
+aa6d0f5d <span class="o">(</span>HEAD -&gt; goat-namespace<span class="o">)</span> move the goat
+</code></pre></div></div>
+
+<p>WTF??! Where’s all of our history? 🤔</p>
+
+<p>What if we use <code>—-follow</code>, which tells <code>git</code> to follow the history of a file even if it’s renamed?</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> goat log <span class="nt">--oneline</span> <span class="nt">--follow</span> mountains/grouse/app/models/grouse/goat.rb
+
+aa6d0f5d <span class="o">(</span>HEAD -&gt; goat-namespace<span class="o">)</span> move the goat
+</code></pre></div></div>
+
+<p>No dice. ☹️</p>
+
+<p>As it turns out, <strong><code>git</code> has a hard time keeping track of history when both the file path and the contents of a file change in the same commit</strong>. We saw a hint of this when we first staged our files for commit: <code>git</code> thought that we had deleted our original goat and added a new one.</p>
+
+<p>(Note that using <a href="https://git-scm.com/docs/git-mv">git mv</a> instead of <code>mv</code> above will helpfully stage the rename and not the file modifications, but adding these two operations to the same commit will still have an identical effect.)</p>
+
+<p>So how do we fix it?</p>
+
+<p>Let’s wind back the clock and make these changes a different way. As a reminder, here’s what our goat looked like to begin with:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># app/models/goat.rb</span>
+<span class="k">class</span> <span class="nc">Goat</span>
+  <span class="k">def</span> <span class="nf">call</span>
+    <span class="s2">"mbaaaahhh"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><em>First</em>, let’s move the goat and make <em>no other changes</em>:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> <span class="nb">mv </span>app/models/goat.rb mountains/grouse/app/models/grouse
+<span class="nv">$&gt;</span> goat status
+On branch goat-namespace
+Changes to be committed:
+  <span class="o">(</span>use <span class="s2">"git restore --staged &lt;file&gt;..."</span> to unstage<span class="o">)</span>
+ renamed:    app/models/goat.rb -&gt; mountains/grouse/app/models/grouse/goat.rb
+</code></pre></div></div>
+
+<p><em>Aha!</em> Now, <code>git</code> detects that all we’ve done is rename the file. It knows this because we didn’t change any of its contents. We can go ahead and commit this.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> goat commit <span class="nt">-m</span> <span class="s2">"move the goat's file"</span>
+<span class="o">[</span>goat-namespace 8f2d0cd] move the goat<span class="s1">'s file
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ rename {app/models =&gt; mountains/grouse/app/models/grouse}/goat.rb (100%)
+</span></code></pre></div></div>
+
+<p>Now, let’s namespace our goat…</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># app/models/goat.rb</span>
+<span class="k">module</span> <span class="nn">Grouse</span>
+  <span class="k">class</span> <span class="nc">Goat</span>
+    <span class="k">def</span> <span class="nf">call</span>
+      <span class="s2">"mbaaaahhh"</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>… and commit that:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> goat commit <span class="nt">-m</span> <span class="s2">"namespace the goat"</span>
+<span class="o">[</span>goat-namespace 1a4b57c] namespace the goat
+ 1 file changed, 5 insertions<span class="o">(</span>+<span class="o">)</span>, 3 deletions<span class="o">(</span>-<span class="o">)</span>
+</code></pre></div></div>
+
+<p>Okay, moment of truth. Can we see our history?</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$&gt;</span> goat log <span class="nt">--oneline</span> <span class="nt">--follow</span> mountains/grouse/app/models/grouse/goat.rb
+  1a4b57cd namespace the goat
+  8f2d0cd6 move the goat<span class="s1">'s file
+  2cb8bf10 Add call method
+  3bb3aafc Add goat
+</span></code></pre></div></div>
+
+<p>Huzzah! It’s all still there.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>We can learn a lot from history — and from goats! — so it’s important to preserve it. Next time you’re sitting down to start refactoring your code, make sure you’re bringing your history along for the ride.</p>
+
+<p>Happy herding! 🐐🐐</p>
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

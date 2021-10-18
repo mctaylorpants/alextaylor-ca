@@ -1,0 +1,213 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - Learn Haskell, Write Better Ruby</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>Learn Haskell, Write Better Ruby</h1>
+            <p class="post-meta">
+              June 24, 2018
+            </p>
+          
+
+          <p><em>Originally published on <a href="https://medium.com/@mctaylorpants/learn-haskell-write-better-ruby-8e22d5ce92dd">Medium</a></em></p>
+
+<p>Over the past several months, I’ve been working my way through <a href="http://haskellbook.com/">Haskell Programming from first principles</a> with a local meetup. Learning Haskell with some experienced mentors and other beginners like myself has been a great way of getting comfortable with functional programming paradigms, and it’s been a lot of fun so far.</p>
+
+<p>I write Ruby every day, so I can’t go and apply Haskell at work any time soon, but learning another programming language is kind of like traveling the world: it broadens your horizons and gives you new perspectives on your everyday life.</p>
+
+<p>Despite the differences between the two languages, I would argue that knowing a bit of Haskell (or another functional programming language) can give you a new perspective on Ruby, and help you write more robust code.</p>
+
+<p>I’m still very much a junior Haskell developer, but I wanted to share some my thoughts so far on how we can apply some of Haskell’s principles and approaches to our everyday Ruby.</p>
+
+<h2 id="haskell-tldr">Haskell TL;DR</h2>
+
+<p>Haskell is a purely functional programming language, which means functions are a first-class citizen. Side effects are also tightly controlled: Haskell encourages you to write the majority of your code in the form of pure functions — which always return a predictable output given a set of inputs — and ensures that you explicitly declare when you’re expecting a side effect like reading from a database or writing to a file.</p>
+
+<p>Haskell is also a typed language: functions must declare what kind of data they’re expecting, and what they’re going to return.</p>
+
+<h2 id="welcome-to-the-world-of-types">Welcome to the World of Types</h2>
+
+<p>A couple weeks ago I was debugging an issue in our Rails app. The error manifested itself in a way all Rubyists are probably all too familiar with:</p>
+
+<pre><code>undefined method 'something' for nil:NilClass
+</code></pre>
+
+<p>The root cause turned out to be a method which was written to check an attribute and return true or false based on its value. The problem was — you guessed it! — it could <em>also</em> return <code>nil</code>. As a result, a value intended to be a boolean was passed around in the code, supposedly driving other logic based on its boolean-ness, until eventually it caused a distant method to also return <code>nil</code> instead of some expected object.</p>
+
+<p>Types make this kind of error impossible. When you work with types, you place constraints around what kinds of values a function should accept, and what kind of value it returns. In Haskell, we might write a function’s type signature like this:</p>
+
+<div class="language-haskell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">isAdmin</span> <span class="o">::</span> <span class="kt">User</span> <span class="o">-&gt;</span> <span class="kt">Bool</span>
+</code></pre></div></div>
+
+<p>We can’t get types in Ruby (although there are <a href="https://medium.com/byteconf/stripe-is-building-a-ruby-typechecker-d6cd7cee6abf">efforts underway</a> to change this), but thinking in types is still tremendously beneficial. Types provide a contract for each and every function in your application: you give me these things, and I’ll return you this other thing. The more we can be aware of the types of data flowing around our application, the easier it will be to spot the subtle bugs that creep in when an argument to a method isn’t what the method expects.</p>
+
+<h2 id="sharing-behaviour">Sharing Behaviour</h2>
+
+<p>In Ruby, we have two ways of sharing behaviour between different classes of objects: composition and inheritance. Composition is especially useful for providing a common interface between different objects. <code>Comparable</code> is a great example; this mixin offers basic comparison functions like greater-than &gt;, less-than &lt;, etc:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">1</span> <span class="o">&lt;</span> <span class="mi">2</span>
+<span class="o">=&gt;</span> <span class="kp">true</span>
+
+<span class="mi">4</span> <span class="o">==</span> <span class="mi">3</span>
+<span class="o">=&gt;</span> <span class="kp">false</span>
+</code></pre></div></div>
+
+<p>With <code>Comparable</code>, we get 6 methods <em>for free</em>, as long as we adhere to the <a href="https://ruby-doc.org/core-2.5.1/Comparable.html">contract laid out in the docs</a>:</p>
+
+<blockquote>
+  <p>“The class must define the <code>&lt;=&gt;</code> operator, which compares the receiver against another object, returning -1, 0, or +1 depending on whether the receiver is less than, equal to, or greater than the other object.”</p>
+</blockquote>
+
+<p>In other words, all we have to do to add <code>Comparable</code> behaviour to our own objects is to <code>include Comparable</code> and implement a method called <code>&lt;=&gt;</code>.</p>
+
+<p>Haskell offers similar functionality via Typeclasses. You can think of Typeclasses as a way of adding behaviour to types. It’s an interesting way of bridging the divide of data and behaviour.</p>
+
+<p>Haskell’s suite of comparison functions is called <code>Ord</code>. Lots of types already have “instances” of the <code>Ord</code> class, the various numerical types (Integer, Float, etc) being obvious examples. But you can add Ord to any type, so long as you <a href="http://hackage.haskell.org/package/base-4.11.1.0/docs/Prelude.html#t:Ord">follow the rules</a>:</p>
+
+<blockquote>
+  <p>“Minimal complete definition: either <code>compare</code> or <code>&lt;=</code>”</p>
+</blockquote>
+
+<p>As long as we define one of those two functions ourselves, we’ll get all the other comparison functions for free. What’s more, we can take advantage of polymorphism: we can write functions that receive some kind of value which implements <code>Ord</code>, without specifying a concrete type.</p>
+
+<p>We can do this easily in Ruby, since there are no types. You can pass anything you want! But if we want to check that a given object adheres to a given contract before calling something, we might use <code>respond_to</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">greater_than?</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+  <span class="k">return</span> <span class="k">unless</span> <span class="n">x</span><span class="p">.</span><span class="nf">respond_to?</span><span class="p">(:</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">y</span><span class="p">.</span><span class="nf">respond_to?</span><span class="p">(:</span><span class="o">&gt;</span><span class="p">)</span>
+
+  <span class="n">x</span> <span class="o">&gt;</span> <span class="n">y</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>You don’t need to do this in Haskell, because the compiler will complain if you try to pass a value which doesn’t implement <code>Ord</code>, which means you don’t have to write all that defensive code!</p>
+
+<div class="language-haskell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">isGreaterThan</span> <span class="o">::</span> <span class="p">(</span><span class="kt">Ord</span> <span class="n">a</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">Bool</span>
+<span class="n">isGreaterThan</span> <span class="n">x</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">y</span>
+</code></pre></div></div>
+
+<p>This function will compare two values that are passed in, and check if the first is greater than the other, so long as both values are of the same type, and that type implements <code>Ord</code>. We can use this with two integers, two floats, two boolean values, etc.</p>
+
+<p>I’ve found that working with types gives me more perspective and awareness when working in a dynamically-typed language like Ruby. When you’re always thinking about types, you’re likely to be more careful about how you pass values around your program.</p>
+
+<p>We don’t have a compiler in Ruby to tell us when we’ve made a mistake, but the next best thing might be to fail fast at runtime:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="k">def</span> <span class="nf">greater_than?</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+  <span class="k">raise</span> <span class="no">TypeError</span> <span class="k">unless</span> <span class="n">x</span><span class="p">.</span><span class="nf">respond_to?</span><span class="p">(:</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">y</span><span class="p">.</span><span class="nf">respond_to?</span><span class="p">(:</span><span class="o">&gt;</span><span class="p">)</span>
+
+  <span class="n">x</span> <span class="o">&gt;</span> <span class="n">y</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h2 id="chaining-behaviour-with-function-composition">Chaining Behaviour with Function Composition</h2>
+
+<p>Lots of methods in Ruby allow you to chain together behaviour:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="s2">"world"</span><span class="p">,</span> <span class="s2">"functional"</span><span class="p">,</span> <span class="s2">"hello"</span><span class="p">]</span>
+  <span class="p">.</span><span class="nf">reverse</span>
+  <span class="p">.</span><span class="nf">join</span><span class="p">(</span><span class="s2">" "</span><span class="p">)</span>
+
+<span class="o">=&gt;</span> <span class="s2">"hello functional world"</span>
+</code></pre></div></div>
+
+<p>Here we start with our input data, an array of strings, and apply a series of transformations to it from left to right. This works because each method returns an object, and each object responds to the next message: an Array knows how to <code>#reverse</code> itself, and how to <code>#join</code> its components into a String.</p>
+
+<p>Transformations in Haskell work by passing data into functions, instead of calling methods on objects. And Haskell provides a handy operator that makes it easy to chain functions together. Here’s the same operation in Haskell:</p>
+
+<div class="language-haskell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">let</span> <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">concat</span> <span class="o">.</span> <span class="n">intersperse</span> <span class="s">" "</span> <span class="o">.</span> <span class="n">reverse</span><span class="p">)</span> <span class="p">[</span><span class="s">"world"</span><span class="p">,</span> <span class="s">"functional"</span><span class="p">,</span> <span class="s">"hello"</span><span class="p">]</span>
+<span class="c1">-- "hello functional world"</span>
+</code></pre></div></div>
+
+<p>The first thing you might notice is that it’s backwards from Ruby: our input data is on the right. This feels weird at first, but it actually makes a lot of sense: in the example above, we’re assigning this operation to a variable named <code>x</code>. So, our data is flowing from right to left and into <code>x</code>.</p>
+
+<p>This illustrates how method chaining differs from function composition: with function composition, we’re using the output of one function as the input to another, and so on and so on until we get the result we want. With method chaining, we’re limited by the methods available on each object. So, if we want to transform an array using our own custom methods, it’s not so easy.</p>
+
+<p>But as of Ruby 2.5, there’s a fancy new way to achieve the power of function composition without too much hassle: <code>#yield_self</code>. This powerful new method lets us use the output of one block as the input to the next, which means we have complete control over how we transform our data. Let’s rewrite the above example using <code>#yield_self</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="s2">"world"</span><span class="p">,</span> <span class="s2">"functional"</span><span class="p">,</span> <span class="s2">"hello"</span><span class="p">]</span>
+  <span class="p">.</span><span class="nf">yield_self</span> <span class="p">{</span> <span class="o">|</span><span class="n">a</span><span class="o">|</span> <span class="n">a</span><span class="p">.</span><span class="nf">reverse</span> <span class="p">}</span>  <span class="c1"># `a` is the original array</span>
+  <span class="p">.</span><span class="nf">yield_self</span> <span class="p">{</span> <span class="o">|</span><span class="n">a</span><span class="o">|</span> <span class="n">a</span><span class="p">.</span><span class="nf">join</span> <span class="s2">" "</span> <span class="p">}</span> <span class="c1"># now `a` is the reversed array</span>
+
+<span class="o">=&gt;</span> <span class="s2">"hello functional world"</span>
+</code></pre></div></div>
+
+<p>(Here we still rely on methods available on the object, like <code>#reverse</code> and <code>#join</code>, but you can imagine the possibilities now that a block is available to us.)</p>
+
+<p>Using function composition can make data transformation more explicit, and often reduces the number of intermediate steps you need to take to accomplish such a series. Give it a shot in your own code!</p>
+
+<h2 id="explicit-side-effects">Explicit Side Effects</h2>
+
+<p>Pure functions are the holy grail of programming: if you can guarantee that your function will return <em>exactly the same output</em> for a given input, you’ve got code which is easy to test, robust, and extremely unlikely to break. Of course, in the real world, we need to cause side effects to make any kind of meaningful program: we need to respond to a network request, get the current time, read and write to a database, etc.</p>
+
+<p>But as it turns out, a great majority of the work our programs need to do can be expressed as pure functions; it’s often only at the boundaries that we need side effects.</p>
+
+<p>In Ruby, we can reach out and touch the outside world any time we want:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">say_hello</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span>
+  <span class="nb">puts</span> <span class="s2">"hello "</span> <span class="o">+</span> <span class="nb">name</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>This method has a side effect: it prints data to the screen. However, nothing aside from knowing what <code>puts</code> does will tell you that this is happening. As a result, it’s quite easy to trigger side effects at any time, which can lead to surprising errors and make testing difficult. Hands up if your Rails app reads from the database while rendering a view? 🙌</p>
+
+<p>Haskell requires us to explicitly declare in our type signature that we’re no longer in pure-function territory. The most common way of doing this is with the IO monad:</p>
+
+<div class="language-haskell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">sayHello</span> <span class="o">::</span> <span class="kt">String</span> <span class="o">-&gt;</span> <span class="kt">IO</span> <span class="kt">String</span>
+<span class="n">sayHello</span> <span class="n">name</span> <span class="o">=</span> <span class="kr">do</span>
+  <span class="n">putStrLn</span> <span class="p">(</span><span class="s">"hello "</span> <span class="o">++</span> <span class="n">name</span><span class="p">)</span>
+  <span class="n">return</span> <span class="n">name</span>
+</code></pre></div></div>
+
+<p>The <code>sayHello</code> function takes one string argument. It then prints “hello &lt;name&gt;” to the screen, and returns the string. Essentially, it’s a function which takes a string and returns a string — except, it performs a side effect: <code>putStrLn</code> causes text to be written to the user’s console. We declare this by wrapping the return string in an IO monad. Effectively, we’ve given this function a contract saying that it will return a string on the condition that the side effect is acknowledged.</p>
+
+<p>The result of this declaration is that anywhere in our code where we invoke <code>sayHello</code>, we need to accept the contract that IO requires of us. Now we’ve got traceability: we can know with absolute certainty where in our application we’re performing side effects.</p>
+
+<p>Controlling side effects is the key to a more predictable, testable application. Minimizing their use and emphasizing their location can go a long way, especially in a dynamic context like Ruby. We don’t have the same kind of tools in Ruby for managing side effects, but we can always keep our eyes open and apply a little discipline.</p>
+
+<h2 id="wrapping-up">Wrapping up</h2>
+
+<p>We’ve just scratched the surface of Haskell’s features, but I hope this gives you a taste for what it’s like. There’s an <a href="https://repl.it/languages/haskell">online REPL</a> if you want to play around a bit more.</p>
+
+<p>I’ve really enjoyed learning Haskell so far. If you’re like me and are more comfortable with object-oriented or imperative paradigms, it can be a bit mind-bending at times, but any momentary confusion is a good sign: it means you’re rewiring your brain to think in a different way, opening yourself up to more ways of solving problems.</p>
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

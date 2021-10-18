@@ -1,0 +1,321 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - A Deep Dive into Routing and Controller Dispatch in Rails</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>A Deep Dive into Routing and Controller Dispatch in Rails</h1>
+            <p class="post-meta">
+              March 17, 2019
+            </p>
+          
+
+          <p><em>Originally published on <a href="https://medium.com/rubyinside/a-deep-dive-into-routing-and-controller-dispatch-in-rails-8bf58c2cf3b5">Ruby Inside</a></em></p>
+
+<p>Rails has a lot of magic that we often take for granted. A lot is going on the behind the clever, elegant abstractions that Rails provides us as users of the framework. And at a certain point, I find it’s useful to peek behind the curtain and see how things really work.</p>
+
+<p>But opening the Rails source code can be absolutely daunting at first. It can feel like a jungle of abstractions and metaprogramming. A large part of this is due to the nature of object-oriented programming: by its nature, it’s not easy to follow a step-by-step path that would be taken at runtime. Sometimes, it helps to have a guide.</p>
+
+<p>With this in mind, let’s take some time to explore how routing works in Rails. How does a web request accepted by Rack make it all the way to your Rails controller?</p>
+
+<h2 id="familiar-territory">Familiar territory</h2>
+
+<p>For the purposes of this example, consider a Rails app with a single route and controller:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">index</span>
+    <span class="c1"># ...</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># config/routes.rb</span>
+<span class="no">Rails</span><span class="p">.</span><span class="nf">application</span><span class="p">.</span><span class="nf">routes</span><span class="p">.</span><span class="nf">draw</span> <span class="k">do</span>
+  <span class="n">resources</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">only: </span><span class="p">[</span><span class="ss">:index</span><span class="p">]</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>In this app, a <code>GET</code> request to <code>/users</code> will be routed to the <code>UsersController</code>. But how?</p>
+
+<h2 id="orientation">Orientation</h2>
+
+<p>A lot of collaboration happens to get from request to controller, so it will be useful to get a bird’s eye view before diving in. Here’s a diagram that shows how routes defined in routes.rb are registered within Rails at boot time. We’ll explore these classes in more detail shortly:</p>
+
+<p><img src="/images/deep-dive-orientation.png" alt="" class="pure-img"></p>
+
+<p>And here’s the sequence of events that occurs when we make our <code>GET</code> request to <code>/users</code>:</p>
+
+<p><img src="/images/deep-dive-users-journey.png" alt="" class="pure-img"></p>
+
+<h2 id="routesrb">routes.rb</h2>
+
+<p>The file you know and love! From a Rails framework perspective, this is the public interface. Declare your routes in this file, and Rails will take care of figuring out how to route a request to the right controller.</p>
+
+<h2 id="routeset">RouteSet</h2>
+
+<p>I kind of lied when I said <code>routes.rb</code> was the public interface. It’s really a DSL to the public interface. The <code>RouteSet</code> is the actual class that acts as the entry point for route configuration in a Rails application. It’s most famous for the <code>#draw</code> method, which we’ve just used in <code>routes.rb</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># What's Rails.application.routes? Why, an instance of `RouteSet`, of course!</span>
+<span class="no">Rails</span><span class="p">.</span><span class="nf">application</span><span class="p">.</span><span class="nf">routes</span><span class="p">.</span><span class="nf">draw</span> <span class="k">do</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h2 id="journeyroutes">Journey::Routes</h2>
+
+<p>Once upon a time, <code>Journey</code> was <a href="https://github.com/rails/journey">a standalone gem</a>, before it was merged into ActionPack. It focuses on routes, and figuring out how to route an incoming request. It doesn’t know about Rails at all, nor does it care — give it a set of routes, then pass it a request, and it will route that request to the first route that matches.</p>
+
+<p>How it performs the routing in an efficient way is fascinating, and there’s <a href="https://www.youtube.com/watch?v=lEC-QoZeBkM">a great talk from Vaidehi Joshi</a> that goes into detail on the internals of <code>Journey</code>. I highly recommend it!</p>
+
+<p><code>Journey::Routes</code> holds on to the routes that our Rails app knows about. <code>RouteSet</code> delegates to it whenever a new route is registered at startup, whether that’s from <code>routes.rb</code>, an engine, or a gem like <a href="https://github.com/plataformatec/devise"><code>Devise</code></a> that defines its own routes.</p>
+
+<h2 id="journeyroute">Journey::Route</h2>
+
+<p>If we think of <code>Journey::Routes</code> like an array, then <code>Journey::Route</code> objects are the elements inside. In addition to the metadata you’d expect this object to hold on to, like the path of the route, it also holds a reference to <code>app</code>, which will get invoked if that route is chosen to serve the request.</p>
+
+<p>In this way, each <code>Journey::Route</code> is kind of like a tiny web app that responds to a single endpoint. It has no knowledge of other routes aside from its own, but it can guide our request in the right direction when the time comes.</p>
+
+<h2 id="routesetdispatcher">RouteSet::Dispatcher</h2>
+
+<p>Contrary to what you might think, the app that lives inside of each <code>Journey::Route</code> object is not some reference to the controller. There’s one more level of indirection here, as a means of keeping Rails code separate from the routing logic that <code>Journey</code> concerns itself with.</p>
+
+<p><code>Dispatcher</code> is a small class which is responsible for instantiating the controller and passing along our request, along with an empty response object. It’s invoked when a suitable route is identified for a request. It has no knowledge about <em>how</em> a request arrived on its doorstep, but it knows what to do when it sees our request: instantiate the <code>UsersController</code> and hand it our request. As we’ll see, it acts as an <a href="https://en.wikipedia.org/wiki/Factory_method_pattern">object factory</a> for our controllers, removing the need for us to declare our controller classes anywhere outside of the classes themselves.</p>
+
+<p>This might seem like an almost needless indirection, but it’s worthwhile considering that <code>Dispatcher</code>’s position between routing logic and controller classes allows either to change without affecting the other.</p>
+
+<h2 id="journeyrouter">Journey::Router</h2>
+
+<p><code>Journey::Routes</code> knows nothing about requests. It knows about routes, and it will quickly and efficiently identify the correct one for the request. So in order to map an incoming request to a route, we need something that knows about a request <em>and</em> a route. Enter <code>Router</code>.</p>
+
+<p>It’s <code>Router</code> that actually invokes the <code>Dispatcher</code> once a route has been found.</p>
+
+<h2 id="userscontroller">UsersController</h2>
+
+<p>Hey, we know what this is already! Welcome home. 😌 Now let’s connect the dots.</p>
+
+<h2 id="back-to-where-it-all-began">Back to where it all began…</h2>
+
+<p>Let’s circle back to our routes file:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">Rails</span><span class="p">.</span><span class="nf">application</span><span class="p">.</span><span class="nf">routes</span><span class="p">.</span><span class="nf">draw</span> <span class="k">do</span>
+  <span class="n">resources</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">only: </span><span class="p">[</span><span class="ss">:index</span><span class="p">]</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>When Rails is booting, <a href="https://github.com/rails/rails/blob/v6.0.0.beta2/railties/lib/rails/engine.rb#L533-L537">a new RouteSet gets instantiated</a>. It evaluates the contents of the routes file and builds up a <code>RouteSet</code>.</p>
+
+<p>Because <code>RouteSet</code> is the source of truth for all available endpoints in our application, it’s also first in line to receive a request from the outside world, after passing through Rack and various middleware. That’s right, this humble class buried in <code>ActionPack</code> is the Walmart greeter of our application, ready with a smile and a wave as soon as a request comes through the door.</p>
+
+<p>In order for <code>RouteSet</code> to accept the request after it’s travelled through Rack and any middleware, it needs to implement Rack’s interface, which is as simple as implementing <code>call</code> (<a href="https://github.com/rails/rails/blob/v6.0.0.beta2/actionpack/lib/action_dispatch/routing/route_set.rb#L836-L840">source</a>):</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+  <span class="n">req</span> <span class="o">=</span> <span class="n">make_request</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+  <span class="n">req</span><span class="p">.</span><span class="nf">path_info</span> <span class="o">=</span> <span class="no">Journey</span><span class="o">::</span><span class="no">Router</span><span class="o">::</span><span class="no">Utils</span><span class="p">.</span><span class="nf">normalize_path</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="nf">path_info</span><span class="p">)</span>
+  <span class="vi">@router</span><span class="p">.</span><span class="nf">serve</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Here we build a new request object. This will end up being a fresh instance of <code>ActionDispatch::Request</code>, populated from env, which is the incoming hash that Rack serves us.</p>
+
+<p>After doing some string gymnastics on the incoming path, we pass the request off to <code>@router</code>, which is an instance of <code>Journey::Router</code>. We pass it a request and ask it to serve that request.</p>
+
+<p>In <code>Journey::Router#serve</code>, we iterate through the routes that match the path in the request (<a href="https://github.com/rails/rails/blob/5e6e505083c2b0caf85b2f86c6be3ff3d8750857/actionpack/lib/action_dispatch/journey/router.rb#L31-L62">source</a>):</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">serve</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+  <span class="n">find_routes</span><span class="p">(</span><span class="n">req</span><span class="p">).</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">match</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">route</span><span class="o">|</span>
+    <span class="n">set_params</span>  <span class="o">=</span> <span class="n">req</span><span class="p">.</span><span class="nf">path_parameters</span>
+
+    <span class="c1"># ...</span>
+
+    <span class="n">req</span><span class="p">.</span><span class="nf">path_parameters</span> <span class="o">=</span> <span class="n">set_params</span><span class="p">.</span><span class="nf">merge</span> <span class="n">parameters</span>
+
+    <span class="c1"># ...</span>
+
+    <span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">body</span> <span class="o">=</span> <span class="n">route</span><span class="p">.</span><span class="nf">app</span><span class="p">.</span><span class="nf">serve</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+
+    <span class="c1"># ...</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">body</span><span class="p">]</span>
+  <span class="k">end</span>
+
+  <span class="p">[</span><span class="mi">404</span><span class="p">,</span> <span class="p">{</span> <span class="s2">"X-Cascade"</span> <span class="o">=&gt;</span> <span class="s2">"pass"</span> <span class="p">},</span> <span class="p">[</span><span class="s2">"Not Found"</span><span class="p">]]</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Pay special attention to this line:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">req</span><span class="p">.</span><span class="nf">path_parameters</span> <span class="o">=</span> <span class="n">set_params</span><span class="p">.</span><span class="nf">merge</span> <span class="n">parameters</span>
+</code></pre></div></div>
+
+<p><code>req.path_parameters</code> is now a hash that might look familiar:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="ss">:controller</span><span class="o">=&gt;</span><span class="s2">"users"</span><span class="p">,</span> <span class="ss">:action</span><span class="o">=&gt;</span><span class="s2">"index"</span><span class="p">}</span>
+</code></pre></div></div>
+
+<p>Notice that we’re actually enriching the request object itself with metadata that’s returned from the <code>find_routes</code> method. This is quite subtle, but it’s how <code>Journey</code> communicates with the rest of the system. Once it identifies a matching route for the request, it “stamps” that knowledge onto the request itself, so that subsequent objects that deal with the request (like <code>Dispatcher</code>) know how to proceed. Foreshadowing!</p>
+
+<p>Anyway, when a match is finally found, we ask the route’s app to serve the request, then return the familiar array from any Rack app of status, headers, and body.</p>
+
+<p>The reason for all this indirection is separation of concerns. In theory, <code>Journey</code> can function perfectly fine outside of a Rails application, and as a result it’s abstracted the concept of an “app” into anything that implements Rack’s interface.</p>
+
+<p>It’s here that Rails comes back into the picture. As I mentioned before, each object behind <code>route.app</code> is actually an instance of <code>Dispatcher</code> (<a href="https://github.com/rails/rails/blob/5e6e505083c2b0caf85b2f86c6be3ff3d8750857/actionpack/lib/action_dispatch/routing/route_set.rb#L29-L40">source</a>):</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Dispatcher</span> <span class="o">&lt;</span> <span class="no">Routing</span><span class="o">::</span><span class="no">Endpoint</span>
+  <span class="c1"># ...</span>
+
+  <span class="k">def</span> <span class="nf">serve</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+    <span class="n">params</span>     <span class="o">=</span> <span class="n">req</span><span class="p">.</span><span class="nf">path_parameters</span>
+    <span class="n">controller</span> <span class="o">=</span> <span class="n">controller</span> <span class="n">req</span>
+    <span class="n">res</span>        <span class="o">=</span> <span class="n">controller</span><span class="p">.</span><span class="nf">make_response!</span> <span class="n">req</span>
+    <span class="n">dispatch</span><span class="p">(</span><span class="n">controller</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="ss">:action</span><span class="p">],</span> <span class="n">req</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">RoutingError</span>
+    <span class="k">if</span> <span class="vi">@raise_on_name_error</span>
+      <span class="k">raise</span>
+    <span class="k">else</span>
+      <span class="p">[</span><span class="mi">404</span><span class="p">,</span> <span class="p">{</span> <span class="s2">"X-Cascade"</span> <span class="o">=&gt;</span> <span class="s2">"pass"</span> <span class="p">},</span> <span class="p">[]]</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="kp">private</span>
+
+  <span class="k">def</span> <span class="nf">controller</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+    <span class="n">req</span><span class="p">.</span><span class="nf">controller_class</span>
+  <span class="k">rescue</span> <span class="no">NameError</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="k">raise</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">RoutingError</span><span class="p">,</span> <span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="p">,</span> <span class="n">e</span><span class="p">.</span><span class="nf">backtrace</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">dispatch</span><span class="p">(</span><span class="n">controller</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">req</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+    <span class="n">controller</span><span class="p">.</span><span class="nf">dispatch</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">req</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><code>Dispatcher</code> is our entry point back into Rails land. It knows that a request is served by a controller, and it knows that the way to talk to a Rails controller is to send it a <code>#dispatch</code> method and pass along the action, the request object, and a fresh new <code>ActionDispatch::Response</code> object to write the response into.</p>
+
+<p>Notice that in the <code>#controller</code> method above, we punt the question of which class to use to the request itself. When our request was first born, it had no idea who should be handling its request; it was just a glorified hash with a ton of metadata coming from the outside world. But thankfully, it passed through <code>Journey</code>’s hands, who imbued it with a few crucial pieces of data:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">req</span><span class="p">.</span><span class="nf">path_parameters</span>
+<span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:controller</span><span class="o">=&gt;</span><span class="s2">"users"</span><span class="p">,</span> <span class="ss">:action</span><span class="o">=&gt;</span><span class="s2">"index"</span><span class="p">}</span>
+</code></pre></div></div>
+
+<p>Armed with this knowledge, the request object itself is now in a position to answer the question, “which controller should serve my request?”</p>
+
+<p>Here’s what that looks like in the <code>Request</code> object (<a href="https://github.com/rails/rails/blob/5e6e505083c2b0caf85b2f86c6be3ff3d8750857/actionpack/lib/action_dispatch/http/request.rb#L84-L92">source</a>):</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># actionpack/lib/action_dispatch/http/request.rb</span>
+<span class="k">def</span> <span class="nf">controller_class_for</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nb">name</span>
+    <span class="n">controller_param</span> <span class="o">=</span> <span class="nb">name</span><span class="p">.</span><span class="nf">underscore</span>
+    <span class="n">const_name</span> <span class="o">=</span> <span class="s2">"</span><span class="si">#{</span><span class="n">controller_param</span><span class="p">.</span><span class="nf">camelize</span><span class="si">}</span><span class="s2">Controller"</span>
+    <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Dependencies</span><span class="p">.</span><span class="nf">constantize</span><span class="p">(</span><span class="n">const_name</span><span class="p">)</span>
+  <span class="k">else</span>
+    <span class="no">PASS_NOT_FOUND</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Buried deep in the Rails framework is a great example of the <a href="https://en.wikipedia.org/wiki/Factory_method_pattern">Factory Pattern</a> at work. We want to automagically choose the right class to handle our incoming request, and we don’t want to hardcode a list of all of our controllers anywhere, because that would be a pain. Since we now have a string, “users”, that tells us which controller this request wants to go to, we can build up the official class name, <code>UsersController</code>, and use <code>#constantize</code> to turn that into the class constant. Along with help from <code>Dispatcher</code>, which ends up invoking the method above, we have a way of instantiating the right controller for the request at runtime.</p>
+
+<p>This is also a great example of the <a href="https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle">Open/Closed principle</a>. Since Rails makes the assumption that your controllers are going to be named a certain way, you’re free to define a new controller simply by creating a new class that follows the naming convention, and defining its matching route. At no point do you have to update some ungainly mapping of route -&gt; controller, or even register your controller anywhere. It’s the adherence to this principle that powers the Rails mantra of convention over configuration.</p>
+
+<p>Now we’re getting really close: a message has been sent to the <code>UsersController</code>! Through a series of intermediary methods, we finally invoke the method <code>#index</code> on the controller:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># actionpack/lib/action_controller/metal.rb</span>
+<span class="k">def</span> <span class="nf">dispatch</span><span class="p">(</span><span class="nb">name</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span> <span class="c1">#:nodoc:</span>
+  <span class="n">set_request!</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+  <span class="n">set_response!</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+  <span class="n">process</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+
+<span class="c1"># actionpack/lib/abstract_controller/base.rb</span>
+<span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+  <span class="c1"># ...</span>
+  <span class="n">process_action</span><span class="p">(</span><span class="n">action_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nf">process_action</span><span class="p">(</span><span class="n">method_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+  <span class="n">send_action</span><span class="p">(</span><span class="n">method_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="k">alias</span> <span class="n">send_action</span> <span class="nb">send</span>
+</code></pre></div></div>
+
+<p>It looks like a lot, but ultimately we’re just using Ruby’s <code>send</code> method to invoke the correct action on our controller instance. Simplified, it might look something like this:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">UsersController</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">).</span><span class="nf">send</span><span class="p">(</span><span class="ss">:index</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="unwinding-the-abstraction">Unwinding the Abstraction</h2>
+
+<p>We just looked at a lot of objects. It can be hard to follow the path of execution when we need to bounce around so many different files. As a reminder, here’s the sequence of events again:</p>
+
+<p><img src="/images/deep-dive-users-journey.png" alt="" class="pure-img"></p>
+
+<p>Another way to help clarify our understanding could be to reduce all of these steps down to a single method. Stripping away some of the abstraction, it might end up looking something like this:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># remember that this is totally fake and you won't find this code anywhere in Rails ;)</span>
+<span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+  <span class="n">req</span> <span class="o">=</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Request</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Response</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+
+  <span class="n">find_routes</span><span class="p">(</span><span class="n">req</span><span class="p">).</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">match</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">route</span><span class="o">|</span>
+    <span class="n">controller_name</span> <span class="o">=</span> <span class="s2">"</span><span class="si">#{</span><span class="n">parameters</span><span class="p">[</span><span class="ss">:controller</span><span class="p">]</span><span class="si">}</span><span class="s2">Controller"</span><span class="p">.</span><span class="nf">constantize</span> <span class="c1"># UsersController</span>
+    <span class="n">action</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="ss">:action</span><span class="p">]</span> <span class="c1"># "index"</span>
+
+    <span class="n">controller</span> <span class="o">=</span> <span class="n">controller</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+    <span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">body</span> <span class="o">=</span> <span class="n">controller</span><span class="p">.</span><span class="nf">send</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">body</span><span class="p">]</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>If you made it this far, congratulations! 🎉 As you can see, there’s a lot going on behind the scenes, but hopefully this has helped to demystify some of the magic and appreciate the object-oriented principles at work.</p>
+
+<p>Next time you add a new controller to your Rails app, sit back and appreciate just how much heavy lifting Rails is doing to take care of the details.</p>
+
+<p>If you want to explore this code further, run <code>bundle open actionpack</code> from your Rails app’s directory and have a look at the classes we’ve explored, or <a href="https://github.com/rails/rails/tree/master/actionpack">check out the actionpack code on GitHub</a>. Have fun!</p>
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
