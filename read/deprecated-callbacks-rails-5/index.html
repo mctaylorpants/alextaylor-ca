@@ -1,0 +1,231 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - Upgrading Rails: Tracking down deprecated callbacks in Rails 5.0</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>Upgrading Rails: Tracking down deprecated callbacks in Rails 5.0</h1>
+            <p class="post-meta">
+              April 20, 2020
+            </p>
+          
+
+          <p>We’re in the process of upgrading some of our Rails apps at <a href="https://www.clio.com/">Clio</a> from Rails 5.0 to 5.1 (and onwards to 6 in the coming months 🚀). Part of our upgrade strategy involves addressing the deprecation warnings that Rails helpfully provides, in order to prepare our app for the next version before upgrading.</p>
+
+<p><a href="https://guides.rubyonrails.org/5_0_release_notes.html#active-record-deprecations">One of the features deprecated in Rails 5.1</a> is the ability to return <code>false</code> from a model callback to halt the chain. As the warning itself helpfully points out:</p>
+
+<blockquote>
+  <p>Returning <code>false</code> in Active Record and Active Model callbacks will not implicitly halt a callback chain in Rails 5.1. To explicitly halt the callback chain, please use <code>throw :abort</code> instead.</p>
+</blockquote>
+
+<p>The change itself is pretty trivial: if you come across a callback that returns <code>false</code>, you simply rewrite it to <code>throw(:abort)</code> and move on with your life. Easy, right? 🤷‍♂️</p>
+
+<p>Well, it turns out that <em>finding those callbacks</em> isn’t always that simple. And unfortunately, in this particular instance Rails’ helpful deprecation warnings fall short of the mark because of the nature of how callbacks get executed. Most of our deprecation warnings looked something like this:</p>
+
+<pre><code>DEPRECATION WARNING: Returning `false` in Active Record and
+Active Model callbacks will not implicitly halt a callback
+chain in Rails 5.1. To explicitly halt the callback chain,
+please use `throw :abort` instead.
+(called from within_new_transaction at
+extensions/active_record/transaction_manager_patch.rb:26)
+</code></pre>
+
+<p>By default, <code>ActiveSupport::Deprecation</code> will attempt to extract a useful bit of stack trace to help you track down the offending code. But it’s not so easy with callbacks. In this particular case, it’s pointing to a patch we added for gathering statistics on transaction times, but the important takeaway is that <strong>using a stack trace to find a callback is a recipe for a headache.</strong>😫</p>
+
+<p>What we <em>really</em> want to know is where the callback is <em>defined</em>, not where it happens to be <em>executed</em> from. And for that, we need the model name and the method name. Consider this callback:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ApplicationRecord</span>
+  <span class="n">before_destroy</span> <span class="ss">:check_ownership</span>
+
+  <span class="k">def</span> <span class="nf">check_ownership</span>
+    <span class="k">if</span> <span class="n">account_owner?</span>
+      <span class="kp">false</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>If all we have is a deprecation warning in our logs, we want to know that the callback we’re looking for is <code>User#check_ownership</code>.
+Let’s see if we can add more context to this deprecation warning.</p>
+
+<h2 id="the-current-approach-">The Current Approach 🔎</h2>
+
+<p>Let’s take a closer look at how this deprecation warning is generated under the hood to figure out how we might improve it.</p>
+
+<p>The <code>ActiveSupport::Callbacks</code> module has what we’re looking for:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">deprecated_false_terminator</span> <span class="c1"># :nodoc:</span>
+  <span class="no">Proc</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">target</span><span class="p">,</span> <span class="n">result_lambda</span><span class="o">|</span>
+    <span class="n">terminate</span> <span class="o">=</span> <span class="kp">true</span>
+    <span class="kp">catch</span><span class="p">(</span><span class="ss">:abort</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">result</span> <span class="o">=</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">call</span> <span class="k">if</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">is_a?</span><span class="p">(</span><span class="no">Proc</span><span class="p">)</span>
+      <span class="k">if</span> <span class="no">Callbacks</span><span class="p">.</span><span class="nf">halt_and_display_warning_on_return_false</span> <span class="o">&amp;&amp;</span> <span class="n">result</span> <span class="o">==</span> <span class="kp">false</span>
+        <span class="n">display_deprecation_warning_for_false_terminator</span>
+      <span class="k">else</span>
+        <span class="n">terminate</span> <span class="o">=</span> <span class="kp">false</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+    <span class="n">terminate</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>In Rails 5.0, the <code>deprecated_false_terminator</code> method is the <a href="https://github.com/rails/rails/blob/c4d3e202e10ae627b3b9c34498afb45450652421/activemodel/lib/active_model/callbacks.rb#L106">default terminator for ActiveModel callbacks and validations</a>. A terminator wraps the callback code itself and determines if its return value should halt the rest of the callback chain. In the snippet above, <code>result_lambda</code> is this wrapper.</p>
+
+<p>By calling <code>result_lambda</code> and inspecting its return value, we can figure out if we need to throw a deprecation warning. If we do, we call <code>display_deprecation_warning_for_false_terminator</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">display_deprecation_warning_for_false_terminator</span>
+  <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Deprecation</span><span class="p">.</span><span class="nf">warn</span><span class="p">(</span><span class="o">&lt;&lt;-</span><span class="no">MSG</span><span class="p">.</span><span class="nf">squish</span><span class="p">)</span><span class="sh">
+    Returning `false` in Active Record and Active Model callbacks will not implicitly halt a callback chain in Rails 5.1.
+    To explicitly halt the callback chain, please use `throw :abort` instead.
+</span><span class="no">  MSG</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>At this point, the standard <code>ActiveSupport::Deprecation</code> infrastructure will kick in to help generate a callstack and send the warning to a log, or STDERR, or <a href="https://api.rubyonrails.org/v5.0.7.2/classes/ActiveSupport/Deprecation/Behavior.html">whichever behaviour you’ve configured</a>.</p>
+
+<p>Anyway, we’ve found the most reasonable place to improve the deprecation warning. Inside <code>deprecated_false_terminator</code>, we have access to <code>target</code>, which represents the model name. Great! Unfortunately, the callback itself has been abstracted away by the <code>result_lambda</code>.</p>
+
+<p>If we take a step back and look at where <code>result_lambda</code> is defined, we can see it’s got what we need:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">halting</span><span class="p">(</span><span class="n">callback_sequence</span><span class="p">,</span> <span class="n">user_callback</span><span class="p">,</span> <span class="n">halted_lambda</span><span class="p">,</span> <span class="n">filter</span><span class="p">)</span>
+  <span class="n">callback_sequence</span><span class="p">.</span><span class="nf">before</span> <span class="k">do</span> <span class="o">|</span><span class="n">env</span><span class="o">|</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">target</span>
+    <span class="n">value</span>  <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">value</span>
+    <span class="n">halted</span> <span class="o">=</span> <span class="n">env</span><span class="p">.</span><span class="nf">halted</span>
+
+    <span class="k">unless</span> <span class="n">halted</span>
+      <span class="n">result_lambda</span> <span class="o">=</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="n">user_callback</span><span class="p">.</span><span class="nf">call</span> <span class="n">target</span><span class="p">,</span> <span class="n">value</span> <span class="p">}</span>
+      <span class="n">env</span><span class="p">.</span><span class="nf">halted</span> <span class="o">=</span> <span class="n">halted_lambda</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">result_lambda</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">env</span><span class="p">.</span><span class="nf">halted</span>
+        <span class="n">target</span><span class="p">.</span><span class="nf">send</span> <span class="ss">:halted_callback_hook</span><span class="p">,</span> <span class="n">filter</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+
+    <span class="n">env</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p><code>halting</code> seems to be where it all comes together: we’ve got the <code>target</code>, the <code>user_callback</code> itself, and also the <code>filter</code>, which would be the symbol <code>:check_ownership</code> in our example above (or a reference to the Proc).</p>
+
+<p>This is a bit of a conundrum: ideally we’d like to patch <code>deprecated_false_terminator</code> so we can pass the model and callback name to the warning message, but now we might need to patch <code>halting</code> to get all of our eggs in one basket, so to speak. There has to be a better way!</p>
+
+<p>As it turns out, we can weasel our way up into <code>halting</code> by doing some introspection on the <code>result_lambda</code>. In Ruby, Procs (of which a lambda is a type) save a reference to the scope in which they were defined; <a href="https://ruby-doc.org/core-2.6/Proc.html#method-i-binding">this is exposed as the <code>#binding</code> method</a>.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">binding</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Binding:0x00007fceb33a9448&gt;</span>
+
+<span class="vg">$&gt;</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">binding</span><span class="p">.</span><span class="nf">local_variables</span>
+<span class="o">=&gt;</span> <span class="p">[</span><span class="ss">:env</span><span class="p">,</span> <span class="ss">:target</span><span class="p">,</span> <span class="ss">:value</span><span class="p">,</span> <span class="ss">:halted</span><span class="p">,</span> <span class="ss">:result_lambda</span><span class="p">,</span> <span class="ss">:callback_sequence</span><span class="p">,</span> <span class="ss">:user_callback</span><span class="p">,</span> <span class="ss">:halted_lambda</span><span class="p">,</span> <span class="ss">:filter</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>Check it out! Like some stealthy closure ninja, we’ve got access to everything we need without ever leaving the comfort of our method.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">binding</span><span class="p">.</span><span class="nf">local_variable_get</span><span class="p">(</span><span class="ss">:filter</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="ss">:check_ownership</span>
+</code></pre></div></div>
+
+<p>We have our model, and we have our callback name. All that’s left to do is to apply a monkey-patch to our application.</p>
+
+<h2 id="a-better-way-">A Better Way ✨</h2>
+<p>Here’s what the final patch looks like (<a href="https://gist.github.com/mctaylorpants/1e20eb4a3756906f75413103fa839dc1">see the full gist here</a>):</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># A monkey-patch to make detecting deprecated</span>
+<span class="c1"># callbacks easier, because a stack trace is</span>
+<span class="c1"># not the greatest when it comes to callbacks.</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1"># Original code:</span>
+<span class="c1"># https://github.com/rails/rails/blob/c4d3e202e10ae627b3b9c34498afb45450652421/activesupport/lib/active_support/callbacks.rb#L766-L788</span>
+<span class="nb">require</span> <span class="s2">"active_support/callbacks"</span>
+
+<span class="k">module</span> <span class="nn">ActiveSupport</span>
+  <span class="k">module</span> <span class="nn">Callbacks</span>
+    <span class="k">module</span> <span class="nn">ClassMethods</span>
+      <span class="k">def</span> <span class="nf">deprecated_false_terminator</span> <span class="c1"># :nodoc:</span>
+        <span class="no">Proc</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">target</span><span class="p">,</span> <span class="n">result_lambda</span><span class="o">|</span>
+          <span class="n">terminate</span> <span class="o">=</span> <span class="kp">true</span>
+          <span class="kp">catch</span><span class="p">(</span><span class="ss">:abort</span><span class="p">)</span> <span class="k">do</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">call</span> <span class="k">if</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">is_a?</span><span class="p">(</span><span class="no">Proc</span><span class="p">)</span>
+            <span class="k">if</span> <span class="no">Callbacks</span><span class="p">.</span><span class="nf">halt_and_display_warning_on_return_false</span> <span class="o">&amp;&amp;</span> <span class="n">result</span> <span class="o">==</span> <span class="kp">false</span>
+              <span class="c1"># the scope that `result_lambda` is created in contains the filter</span>
+              <span class="c1"># that we need to identify the callback with, so let's pull it</span>
+              <span class="c1"># out of the binding.</span>
+              <span class="n">filter</span> <span class="o">=</span> <span class="n">result_lambda</span><span class="p">.</span><span class="nf">binding</span><span class="p">.</span><span class="nf">local_variable_get</span><span class="p">(</span><span class="ss">:filter</span><span class="p">)</span> <span class="k">rescue</span> <span class="kp">nil</span>
+              <span class="n">display_deprecation_warning_for_false_terminator</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">filter</span><span class="p">)</span>
+            <span class="k">else</span>
+              <span class="n">terminate</span> <span class="o">=</span> <span class="kp">false</span>
+            <span class="k">end</span>
+          <span class="k">end</span>
+          <span class="n">terminate</span>
+        <span class="k">end</span>
+      <span class="k">end</span>
+
+      <span class="k">def</span> <span class="nf">display_deprecation_warning_for_false_terminator</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="kp">nil</span><span class="p">,</span> <span class="n">filter</span><span class="o">=</span><span class="kp">nil</span><span class="p">)</span>
+        <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Deprecation</span><span class="p">.</span><span class="nf">warn</span><span class="p">(</span><span class="o">&lt;&lt;~</span><span class="no">MSG</span><span class="p">)</span><span class="sh">
+          Returned `false` from callback in `</span><span class="si">#{</span><span class="n">target</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="sh">#</span><span class="si">#{</span><span class="n">filter</span><span class="si">}</span><span class="sh">`!
+          Returning `false` in Active Record and Active Model callbacks will not implicitly halt a callback chain in Rails 5.1.
+          To explicitly halt the callback chain, please use `throw :abort` instead.
+</span><span class="no">        MSG</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Thanks to the context provided by <code>result_lambda</code>, we’re able to extract the model in question and the name of the callback, and pass it down to the warning message.</p>
+
+<p>Check out our deprecation warning now:</p>
+
+<pre><code>DEPRECATION WARNING: Returned `false` from callback in
+`User#check_ownership`! Returning `false` in Active
+Record and Active Model callbacks will not implicitly
+halt a callback chain in Rails 5.1. To explicitly halt
+the callback chain, please use `throw :abort` instead.
+</code></pre>
+
+<p>Given how old Rails 5.0 is at this point, I admit this tip is a bit late, but if it helps a few people avoid these kinds of headaches in the future, it’s worth it! 🙌</p>
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
