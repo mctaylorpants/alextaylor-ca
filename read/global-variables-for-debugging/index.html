@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Nanoc 4.12.2">
+
+    <title>alextaylor.ca - Global variables are awesome (for debugging)</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/code-highlighting.css">
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-1 header">
+        <div class="l-box">
+          <h1>
+            <a href="/">
+              <span class="light">~/</span>taylormade
+            </a>
+          </h1>
+          <hr />
+        </div>
+      </div>
+
+      <div class="pure-u-1 content">
+        <div class="l-box">
+          
+            <h1>Global variables are awesome (for debugging)</h1>
+            <p class="post-meta">
+              October 18, 2021
+            </p>
+          
+
+          <p>Most people will tell you that global variables are a terrible idea. I agree with them, except in one situation: debugging!</p>
+
+<p>A mutable global variable - anything prefixed with <code>$</code> in Ruby - is a great way of dynamically controlling a program’s execution path at runtime. I do this a lot:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="vg">$debug</span>
+  <span class="nb">binding</span><span class="p">.</span><span class="nf">pry</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Now I can conditionally control my breakpoint, which is handy if the code path is frequently executed (like in a loop) but I don’t want to stop every time. After I stop
+and do what I want, I can unset it:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="n">pry</span><span class="p">(</span><span class="n">main</span><span class="p">)</span><span class="o">&gt;</span> <span class="vg">$debug</span> <span class="o">=</span> <span class="kp">false</span>
+<span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="n">pry</span><span class="p">(</span><span class="n">main</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">continue</span>
+</code></pre></div></div>
+
+<p>… and then continue on my merry way!</p>
+
+<p>Here’s another situation: Today I was trying to build reproduction steps for a particularly tricky edge case. It relied on a code path encountering an exception the first time it ran, but not subsequent times, and it didn’t really matter what the exception was. I dropped this into the code path:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="vg">$raise_exception</span>
+  <span class="k">raise</span> <span class="s2">"Boom!"</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Then, my console session looked something like this:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="n">pry</span><span class="p">(</span><span class="n">main</span><span class="p">)</span><span class="o">&gt;</span> <span class="vg">$raise_exception</span> <span class="o">=</span> <span class="kp">true</span>
+<span class="o">=&gt;</span> <span class="kp">true</span>
+
+<span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="n">pry</span><span class="p">(</span><span class="n">main</span><span class="p">)</span><span class="o">&gt;</span> <span class="no">SomeClass</span><span class="p">.</span><span class="nf">do_a_thing</span>
+
+<span class="c1"># RuntimeError: Boom!</span>
+<span class="c1"># from (pry):2:in `&lt;main&gt;'</span>
+
+<span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="n">pry</span><span class="p">(</span><span class="n">main</span><span class="p">)</span><span class="o">&gt;</span> <span class="vg">$raise_exception</span> <span class="o">=</span> <span class="kp">false</span>
+<span class="o">=&gt;</span> <span class="kp">false</span>
+
+<span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="n">pry</span><span class="p">(</span><span class="n">main</span><span class="p">)</span><span class="o">&gt;</span> <span class="no">SomeClass</span><span class="p">.</span><span class="nf">do_a_thing</span>
+<span class="o">=&gt;</span> <span class="kp">nil</span>
+</code></pre></div></div>
+
+<p>With global variables, the debugging possibilities are endless!</p>
+
+
+        </div>
+      </div>
+
+      <div class="pure-u-1">
+        <div class="l-box">
+          <hr />
+          <p class="footer">
+            &copy; 2021 <strong>Alex Taylor</strong>
+            &middot;
+            <a href="https://github.com/mctaylorpants">github</a>
+            &middot;
+            <a href="https://www.linkedin.com/in/alexmorgantaylor/">linkedin</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
