@@ -14,7 +14,7 @@ html, button, input, select, textarea,
     color: #000000b8;
 }
 
-p {
+p, li {
   line-height: 1.6em;
 }
 
