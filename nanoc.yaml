@@ -3,6 +3,8 @@
 # will be considered as binary.
 text_extensions: [ 'adoc', 'asciidoc', 'atom', 'coffee', 'css', 'erb', 'haml', 'handlebars', 'hb', 'htm', 'html', 'js', 'less', 'markdown', 'md', 'ms', 'mustache', 'php', 'rb', 'rdoc', 'sass', 'scss', 'slim', 'tex', 'txt', 'xhtml', 'xml' ]
 
+base_url: "https://alextaylor.ca"
+
 prune:
   auto_prune: true
   exclude: [ ".git", "CNAME" ]
