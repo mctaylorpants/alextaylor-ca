@@ -7,7 +7,7 @@
 <h2>recent posts:</h2>
 
 <ul>
-  <% sorted_articles.take(10).each do |item| %>
+  <% sorted_articles.take(5).each do |item| %>
     <li>
       <%# item[:created_at].strftime("%B %-d, %Y") %>
       <a href="<%= item.path %>">
