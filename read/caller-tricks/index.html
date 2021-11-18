@@ -75,8 +75,8 @@
   <span class="k">end</span>
 
   <span class="k">def</span> <span class="nf">drink</span>
-    <span class="nb">puts</span> <span class="nb">caller</span><span class="p">.</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">s</span><span class="o">|</span> <span class="n">s</span><span class="p">.</span><span class="nf">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"  "</span><span class="p">)</span> <span class="p">}</span> <span class="c1"># padding</span>
     <span class="nb">puts</span> <span class="s2">"Ssssip! Mmmm, </span><span class="si">#{</span><span class="vi">@tea_name</span><span class="si">}</span><span class="s2">."</span>
+    <span class="nb">puts</span> <span class="nb">caller</span><span class="p">.</span><span class="nf">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">s</span><span class="o">|</span> <span class="n">s</span><span class="p">.</span><span class="nf">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"  "</span><span class="p">)</span> <span class="p">}</span> <span class="c1"># padding</span>
   <span class="k">end</span>
 <span class="k">end</span>
 
@@ -88,9 +88,9 @@
 <pre><code>$&gt; ruby tea.rb
 1 teaspoon per cup...
 Pouring water and waiting 3.5 minutes...
+Ssssip! Mmmm, Assam.
   tea.rb:9:in `prepare'
   tea.rb:28:in `&lt;main&gt;'
-Ssssip! Mmmm, Assam.
 </code></pre>
 
 <h2 id="stacktrace-too-long-did-not-read">Stacktrace too long; did not read</h2>
@@ -109,8 +109,8 @@ Ssssip! Mmmm, Assam.
 <pre><code>$&gt; ruby tea.rb
 1 teaspoon per cup...
 Pouring water and waiting 3.5 minutes...
-  tea.rb:9:in `prepare'
 Ssssip! Mmmm, Assam.
+  tea.rb:9:in `prepare'
 </code></pre>
 
 <h2 id="sometimes-you-want-more-than-just-a-string">Sometimes, you want more than just a string</h2>
@@ -131,9 +131,9 @@ Ssssip! Mmmm, Assam.
 <pre><code>$&gt; ruby tea.rb
 1 teaspoon per cup...
 Pouring water and waiting 3.5 minutes...
+Ssssip! Mmmm, Assam.
   --&gt; called from tea.rb at line 9
       (full path: /Users/alextaylor/code/tea.rb)
-Ssssip! Mmmm, Assam.
 </code></pre>
 
 <h2 id="appendix-performance-of-caller">Appendix: performance of <code>caller</code>
