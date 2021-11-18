@@ -31,8 +31,8 @@ class Tea
   end
 
   def drink
-    puts caller.map { |s| s.insert(0, "  ") } # padding
     puts "Ssssip! Mmmm, #{@tea_name}."
+    puts caller.map { |s| s.insert(0, "  ") } # padding
   end
 end
 
@@ -45,9 +45,9 @@ When we run the file, now we can see how we got to `#drink`:
 $> ruby tea.rb
 1 teaspoon per cup...
 Pouring water and waiting 3.5 minutes...
+Ssssip! Mmmm, Assam.
   tea.rb:9:in `prepare'
   tea.rb:28:in `<main>'
-Ssssip! Mmmm, Assam.
 ~~~
 
 
@@ -69,8 +69,8 @@ Anyway, when we run this, we get a more focused output:
 $> ruby tea.rb
 1 teaspoon per cup...
 Pouring water and waiting 3.5 minutes...
-  tea.rb:9:in `prepare'
 Ssssip! Mmmm, Assam.
+  tea.rb:9:in `prepare'
 ~~~
 
 ## Sometimes, you want more than just a string
@@ -94,9 +94,9 @@ end
 $> ruby tea.rb
 1 teaspoon per cup...
 Pouring water and waiting 3.5 minutes...
+Ssssip! Mmmm, Assam.
   --> called from tea.rb at line 9
       (full path: /Users/alextaylor/code/tea.rb)
-Ssssip! Mmmm, Assam.
 ~~~
 
 
