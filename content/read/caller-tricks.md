@@ -84,10 +84,10 @@ caller_locations(1, 1)
 `caller_locations` has the same interface as `caller`, but it returns a [`Thread::Backtrace::Location`](https://ruby-doc.org/core-2.7.0/Thread/Backtrace/Location.html) instead of a String for each entry. Much easier than messing around with the string itself:
 
 ~~~ruby
-caller_locations(1, 1)
-  puts "  --> called from #{s.path} at line #{s.lineno}"
-  puts "      (full path: #{s.absolute_path})"
-end
+loc = caller_locations(1, 1)
+
+puts "  --> called from #{loc.path} at line #{loc.lineno}"
+puts "      (full path: #{loc.absolute_path})"
 ~~~
 
 ~~~
