@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Start a tmux session for hot-compiling the site
+# and previewing it.
+#
+# Usage:
+#   Ctrl-b Ctrl-o will switch between panes.
+#   Ctrl-d to detach from the session.
+#   Ctrl-c on both panes will exit.
+
+tmux new-session -d 'watch bundle exec nanoc' \; split-window -d 'bundle exec nanoc view' \; attach
