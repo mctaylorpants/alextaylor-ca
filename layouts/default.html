@@ -26,6 +26,7 @@
       <meta property="og:title" content="<%= item[:title] %>" />
       <meta property="og:description" content="<%= excerptize(strip_html(item.compiled_content), length: 200) %>" />
       <meta property="og:url" content="<%= url_for(item) %>" />
+      <meta name="twitter:card" content="summary_large_image"></meta>
     <% end %>
   </head>
   <body>
