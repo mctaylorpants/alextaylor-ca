@@ -22,7 +22,7 @@
     <meta property="og:type" content="article" />
 
     <% if item[:kind] == "article" %>
-      <meta property="og:image" content="https://alextaylor.ca/images/taylormade_og_image.svg" />
+      <meta property="og:image" content="https://alextaylor.ca/images/taylormade_og_image.png" />
       <meta property="og:title" content="<%= item[:title] %>" />
       <meta property="og:description" content="<%= excerptize(strip_html(item.compiled_content), length: 200) %>" />
       <meta property="og:url" content="<%= url_for(item) %>" />
