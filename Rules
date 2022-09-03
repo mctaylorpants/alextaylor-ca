@@ -1,18 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'byebug'
-require 'nokogiri'
-Nanoc::Filter.define(:markdown_links) do |content, params|
-  document = Nokogiri::HTML::DocumentFragment.parse(content)
-
-  document.css("h2").each do |header|
-    id = header.attributes["id"]
-    header.wrap(%|<a href="##{id}"></a>|)
-  end
-
-  document.to_s
-end
-
 compile '/**/*.{html,html.erb}' do
   layout '/default.*'
   filter :erb
@@ -26,8 +13,7 @@ compile '/**/*.{html,html.erb}' do
 end
 
 compile '/**/*.md' do
-  filter :kramdown
-  filter :markdown_links
+  filter :kramdown, header_links: true
   filter :colorize_syntax, default_colorizer: :rouge
   layout '/default.*'
 
