@@ -95,7 +95,8 @@ Ssssip! Mmmm, Assam.
   tea.rb:28:in `&lt;main&gt;'
 </code></pre>
 
-<h2 id="stacktrace-too-long-did-not-read">Stacktrace too long; did not read</h2>
+<h2 id="stacktrace-too-long-did-not-read">
+<a href="#stacktrace-too-long-did-not-read"></a>Stacktrace too long; did not read</h2>
 
 <p>Stacktraces can get pretty huge, especially if you’re debugging something in Rails. Sometimes you just need to know the last line from the stacktrace. You could address into the array from <code>caller</code>, but there’s another way:</p>
 
@@ -115,7 +116,8 @@ Ssssip! Mmmm, Assam.
   tea.rb:9:in `prepare'
 </code></pre>
 
-<h2 id="sometimes-you-want-more-than-just-a-string">Sometimes, you want more than just a string</h2>
+<h2 id="sometimes-you-want-more-than-just-a-string">
+<a href="#sometimes-you-want-more-than-just-a-string"></a>Sometimes, you want more than just a string</h2>
 
 <p>If you want to extract the filename, line number etc. from each line, you could do a bunch of surgery on the string itself. Or, you could use <code>caller_locations</code>:</p>
 
@@ -138,7 +140,8 @@ Ssssip! Mmmm, Assam.
       (full path: /Users/alextaylor/code/tea.rb)
 </code></pre>
 
-<h2 id="appendix-performance-of-caller">Appendix: performance of <code>caller</code>
+<h2 id="appendix-performance-of-caller">
+<a href="#appendix-performance-of-caller"></a>Appendix: performance of <code>caller</code>
 </h2>
 <p>I had a feeling that passing arguments to <code>caller</code> would be more performant than indexing into the whole array, since presumably <code>caller</code> wouldn’t do the work of generating the whole stack trace if it didn’t need to. But I wanted to prove it, so I wrote a benchmarking script:</p>
 

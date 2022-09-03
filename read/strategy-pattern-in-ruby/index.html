@@ -63,7 +63,8 @@ Design patterns can be powerful conceptual models for thinking about how to solv
 
 <hr>
 
-<h2 id="a-brief-overview-of-the-strategy-pattern">A Brief Overview of the Strategy Pattern</h2>
+<h2 id="a-brief-overview-of-the-strategy-pattern">
+<a href="#a-brief-overview-of-the-strategy-pattern"></a>A Brief Overview of the Strategy Pattern</h2>
 
 <p>The funny thing about patterns is, abstract descriptions of them always sound impenetrable and intimidating. If you want to go into more depth, check out the <a href="https://en.wikipedia.org/wiki/Strategy_pattern">excellent Wikipedia article</a>.</p>
 
@@ -71,7 +72,8 @@ Design patterns can be powerful conceptual models for thinking about how to solv
 
 <p>For a practical example, we’re going to look at <a href="https://github.com/plataformatec/devise">Devise</a>, and one of its dependencies, <a href="https://github.com/hassox/warden">Warden</a>.</p>
 
-<h2 id="the-strategy-pattern-in-warden">The Strategy Pattern in Warden</h2>
+<h2 id="the-strategy-pattern-in-warden">
+<a href="#the-strategy-pattern-in-warden"></a>The Strategy Pattern in Warden</h2>
 
 <p><a href="https://github.com/hassox/warden">Warden</a> is a Ruby gem that provides authentication for Rack applications. It’s a dependency of <a href="https://github.com/plataformatec/devise">Devise</a>, which uses Warden under the hood to authenticate requests.</p>
 
@@ -81,7 +83,8 @@ Design patterns can be powerful conceptual models for thinking about how to solv
 
 <p>This concept of multiple strategies is perhaps a slight twist on the classic Strategy pattern; instead of selecting a single algorithm at runtime based on characteristics of the incoming request, Warden loops through all the selected strategies until it finds one that works.</p>
 
-<h2 id="lets-see-some-code">Let’s See Some Code</h2>
+<h2 id="lets-see-some-code">
+<a href="#lets-see-some-code"></a>Let’s See Some Code</h2>
 
 <p>It’s always useful seeing how these patterns are implemented. Let’s dive into Warden!</p>
 
@@ -139,12 +142,14 @@ Design patterns can be powerful conceptual models for thinking about how to solv
 
 <p>We can see that the code in <code>#_run_strategies_for</code> is concerned with one thing: figuring out which of the many potential strategies will successfully authenticate the request. Imagine what this method would look like if it also contained the logic from those strategies. Imagine how difficult it would be to add a new one!</p>
 
-<h2 id="separation-of-concerns">Separation of Concerns</h2>
+<h2 id="separation-of-concerns">
+<a href="#separation-of-concerns"></a>Separation of Concerns</h2>
 <p>Used as it is here, the Strategy pattern provides a really nice interface between Warden, Devise, and your application, and allows each component to focus on a single responsibility. Warden concerns itself with the gory details of handling sessions in Rack. Devise hooks into Rails to provide user flows and other niceties. Strategies provide a plug-and-play interface that keeps those concerns separate.</p>
 
 <hr>
 
-<h2 id="conclusion">Conclusion</h2>
+<h2 id="conclusion">
+<a href="#conclusion"></a>Conclusion</h2>
 
 <p>Employing the Strategy pattern in your own code can be an effective way of managing complexity. It embraces polymorphism and allows your code to focus on sending messages instead of switching on type. It also emphasizes a separation of concerns; your client code doesn’t need to concern itself with the internals of multiple algorithms.</p>
 

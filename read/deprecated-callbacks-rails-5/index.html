@@ -89,7 +89,8 @@ extensions/active_record/transaction_manager_patch.rb:26)
 <p>If all we have is a deprecation warning in our logs, we want to know that the callback we’re looking for is <code>User#check_ownership</code>.
 Let’s see if we can add more context to this deprecation warning.</p>
 
-<h2 id="the-current-approach-">The Current Approach 🔎</h2>
+<h2 id="the-current-approach-">
+<a href="#the-current-approach-"></a>The Current Approach 🔎</h2>
 
 <p>Let’s take a closer look at how this deprecation warning is generated under the hood to figure out how we might improve it.</p>
 
@@ -170,7 +171,8 @@ Let’s see if we can add more context to this deprecation warning.</p>
 
 <p>We have our model, and we have our callback name. All that’s left to do is to apply a monkey-patch to our application.</p>
 
-<h2 id="a-better-way-">A Better Way ✨</h2>
+<h2 id="a-better-way-">
+<a href="#a-better-way-"></a>A Better Way ✨</h2>
 <p>Here’s what the final patch looks like (<a href="https://gist.github.com/mctaylorpants/1e20eb4a3756906f75413103fa839dc1">see the full gist here</a>):</p>
 
 <div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># A monkey-patch to make detecting deprecated</span>

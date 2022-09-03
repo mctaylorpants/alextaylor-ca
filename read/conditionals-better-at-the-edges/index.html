@@ -57,7 +57,8 @@
 
 <p>Put another way, if your code path needs to branch, it’s often better to do it as early as possible, or as late as possible. Doing this helps cut down on the amount of paths through a given piece of code, and makes it easier to reason about.</p>
 
-<h2 id="learning-by-example">Learning by example</h2>
+<h2 id="learning-by-example">
+<a href="#learning-by-example"></a>Learning by example</h2>
 
 <p>I was doing some code-diving recently and came across this function in our frontend code. It pulls data for a table which displays rows of three similar but distinct records:</p>
 
@@ -107,7 +108,8 @@
 
 <p>Let’s think about how we can eliminate these conditionals.</p>
 
-<h2 id="pull-up-pull-up">Pull up! Pull up!</h2>
+<h2 id="pull-up-pull-up">
+<a href="#pull-up-pull-up"></a>Pull up! Pull up!</h2>
 
 <p>There are different reasons for each conditional in the code above, but ultimately they’re all asking the same question: <strong>am I dealing with a user, an invitation, or a license?</strong></p>
 
@@ -155,7 +157,8 @@
 
 <p>You might notice we’ve traded conditionals for duplication. I think that’s a worthwhile tradeoff in this case, because the resulting code is easier to understand. The duplication is trivial, and it actually serves to highlight how each type of object differs from each other.</p>
 
-<h2 id="conclusion">Conclusion</h2>
+<h2 id="conclusion">
+<a href="#conclusion"></a>Conclusion</h2>
 <p>Whenever I see a conditional now, I try to ask myself the question, “can I pull this up or push it down?” Sometimes the answer is “no”, but it’s a useful exercise nonetheless.</p>
 
         </div>

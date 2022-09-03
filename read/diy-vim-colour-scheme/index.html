@@ -55,7 +55,8 @@
 
 <p>Let’s dive in!</p>
 
-<h2 id="ansi-escape-codes-confounding-programmers-since-1979">ANSI escape codes: confounding programmers since 1979</h2>
+<h2 id="ansi-escape-codes-confounding-programmers-since-1979">
+<a href="#ansi-escape-codes-confounding-programmers-since-1979"></a>ANSI escape codes: confounding programmers since 1979</h2>
 <p>vim, and other terminal programs, use <a href="https://en.m.wikipedia.org/wiki/ANSI_escape_code">ANSI escape codes</a> to render colours to the terminal. They look like this:</p>
 
 <pre><code>ESC[38;5;9m
@@ -112,7 +113,8 @@
 
 <p><img src="/images/colours-rb.png" alt="" class="pure-img"></p>
 
-<h2 id="syntax-highlighting-in-vim">Syntax highlighting in vim</h2>
+<h2 id="syntax-highlighting-in-vim">
+<a href="#syntax-highlighting-in-vim"></a>Syntax highlighting in vim</h2>
 <p>vim defines a bunch of “highlight groups” that work kind of like CSS classes: any text that belongs to that group will get the same style treatment. So defining your own colour scheme is a matter of telling vim what colours you want for each group.</p>
 
 <pre><code>highlight Normal ctermbg=9 ctermfg=15
@@ -122,7 +124,8 @@
 
 <p>You can run this command at any point in a vim session, but using that for a whole theme would be tedious! There’s a <code>colors</code> folder where the default themes are defined, so that’s where I started hacking on mine - I just made a new <code>.vim</code> file in there. (You can get to the folder by running <code>:e $VIMRUNTIME/colors</code>).</p>
 
-<h2 id="whack-a-mole">Whack-a-mole</h2>
+<h2 id="whack-a-mole">
+<a href="#whack-a-mole"></a>Whack-a-mole</h2>
 <p>So, now I knew how to specify a colour, and how to apply it to some text. Time to figure out how to put a theme together!</p>
 
 <p>The highlight groups aren’t always the most intuitively-named, so it’s tricky figuring out how to change the colour of the thing you’re looking at. For example, the <code>Constant</code> group highlights literals in Ruby – such as numbers, strings and symbols – while the <code>Type</code> group is for <em>actual</em> Ruby constants (which includes class names).</p>
@@ -139,10 +142,12 @@ map &lt;leader&gt;d :colorscheme solarized&lt;CR&gt;
 
 <p><img src="/images/vim-colour-compare.gif" alt="" class="pure-img"></p>
 
-<h2 id="i-purple-you-">I purple you 💜</h2>
+<h2 id="i-purple-you-">
+<a href="#i-purple-you-"></a>I purple you 💜</h2>
 <p>Since the Hackathon theme was purple, I needed a name that was on-theme. I settled on “borahae”, which is a Korean portmanteau of “bora 보라” (purple), and “saranghae 사랑해”, (“I love you”). So, it roughly translates to “I purple you!” It was coined by a member of the K-pop band <a href="https://ibighit.com/bts/eng/">BTS</a>, who you should all listen to because they’re awesome.</p>
 
-<h2 id="the-finished-product">The finished product</h2>
+<h2 id="the-finished-product">
+<a href="#the-finished-product"></a>The finished product</h2>
 <p><a href="https://github.com/mctaylorpants/vim-borahae"><code>vim-borahae</code> is up on Github</a>! I would consider it <em>extremely</em> alpha but it was a fun project to learn a bit more about ANSI colours and customizing vim.</p>
 
 <p><img src="https://user-images.githubusercontent.com/7259082/185664193-6faf62c8-7fa1-4cc5-a97b-73d1bba2c023.png" alt="" class="pure-img"></p>

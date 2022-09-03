@@ -63,13 +63,15 @@ Over the past several months, I’ve been working my way through Haskell Program
 
 <p>I’m still very much a junior Haskell developer, but I wanted to share some my thoughts so far on how we can apply some of Haskell’s principles and approaches to our everyday Ruby.</p>
 
-<h2 id="haskell-tldr">Haskell TL;DR</h2>
+<h2 id="haskell-tldr">
+<a href="#haskell-tldr"></a>Haskell TL;DR</h2>
 
 <p>Haskell is a purely functional programming language, which means functions are a first-class citizen. Side effects are also tightly controlled: Haskell encourages you to write the majority of your code in the form of pure functions — which always return a predictable output given a set of inputs — and ensures that you explicitly declare when you’re expecting a side effect like reading from a database or writing to a file.</p>
 
 <p>Haskell is also a typed language: functions must declare what kind of data they’re expecting, and what they’re going to return.</p>
 
-<h2 id="welcome-to-the-world-of-types">Welcome to the World of Types</h2>
+<h2 id="welcome-to-the-world-of-types">
+<a href="#welcome-to-the-world-of-types"></a>Welcome to the World of Types</h2>
 
 <p>A couple weeks ago I was debugging an issue in our Rails app. The error manifested itself in a way all Rubyists are probably all too familiar with:</p>
 
@@ -85,7 +87,8 @@ Over the past several months, I’ve been working my way through Haskell Program
 
 <p>We can’t get types in Ruby (although there are <a href="https://medium.com/byteconf/stripe-is-building-a-ruby-typechecker-d6cd7cee6abf">efforts underway</a> to change this), but thinking in types is still tremendously beneficial. Types provide a contract for each and every function in your application: you give me these things, and I’ll return you this other thing. The more we can be aware of the types of data flowing around our application, the easier it will be to spot the subtle bugs that creep in when an argument to a method isn’t what the method expects.</p>
 
-<h2 id="sharing-behaviour">Sharing Behaviour</h2>
+<h2 id="sharing-behaviour">
+<a href="#sharing-behaviour"></a>Sharing Behaviour</h2>
 
 <p>In Ruby, we have two ways of sharing behaviour between different classes of objects: composition and inheritance. Composition is especially useful for providing a common interface between different objects. <code>Comparable</code> is a great example; this mixin offers basic comparison functions like greater-than &gt;, less-than &lt;, etc:</p>
 
@@ -142,7 +145,8 @@ Over the past several months, I’ve been working my way through Haskell Program
 <span class="k">end</span>
 </code></pre></div></div>
 
-<h2 id="chaining-behaviour-with-function-composition">Chaining Behaviour with Function Composition</h2>
+<h2 id="chaining-behaviour-with-function-composition">
+<a href="#chaining-behaviour-with-function-composition"></a>Chaining Behaviour with Function Composition</h2>
 
 <p>Lots of methods in Ruby allow you to chain together behaviour:</p>
 
@@ -178,7 +182,8 @@ Over the past several months, I’ve been working my way through Haskell Program
 
 <p>Using function composition can make data transformation more explicit, and often reduces the number of intermediate steps you need to take to accomplish such a series. Give it a shot in your own code!</p>
 
-<h2 id="explicit-side-effects">Explicit Side Effects</h2>
+<h2 id="explicit-side-effects">
+<a href="#explicit-side-effects"></a>Explicit Side Effects</h2>
 
 <p>Pure functions are the holy grail of programming: if you can guarantee that your function will return <em>exactly the same output</em> for a given input, you’ve got code which is easy to test, robust, and extremely unlikely to break. Of course, in the real world, we need to cause side effects to make any kind of meaningful program: we need to respond to a network request, get the current time, read and write to a database, etc.</p>
 
@@ -207,7 +212,8 @@ Over the past several months, I’ve been working my way through Haskell Program
 
 <p>Controlling side effects is the key to a more predictable, testable application. Minimizing their use and emphasizing their location can go a long way, especially in a dynamic context like Ruby. We don’t have the same kind of tools in Ruby for managing side effects, but we can always keep our eyes open and apply a little discipline.</p>
 
-<h2 id="wrapping-up">Wrapping up</h2>
+<h2 id="wrapping-up">
+<a href="#wrapping-up"></a>Wrapping up</h2>
 
 <p>We’ve just scratched the surface of Haskell’s features, but I hope this gives you a taste for what it’s like. There’s an <a href="https://repl.it/languages/haskell">online REPL</a> if you want to play around a bit more.</p>
 

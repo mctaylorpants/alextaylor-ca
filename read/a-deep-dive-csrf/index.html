@@ -63,13 +63,15 @@ If you’re using Rails today, chances are you’re using CSRF protection. It’
 
 <p>I decided to do a deep-dive into the Rails codebase to understand how the feature has been implemented. What follows is an exploration of how CSRF protection works in Rails. We’ll look at how the tokens are initially generated for each response, and how they’re used on an incoming request to validate the authenticity of the request.</p>
 
-<h2 id="the-basics">The Basics</h2>
+<h2 id="the-basics">
+<a href="#the-basics"></a>The Basics</h2>
 
 <p>There are two components to CSRF. First, a unique token is embedded in your site’s HTML. That same token is also stored in the session cookie. When a user makes a POST request, the CSRF token from the HTML gets sent with that request. Rails compares the token from the page with the token from the session cookie to ensure they match.</p>
 
 <p><img src="/images/csrf-diagram.png" alt="" class="pure-img"></p>
 
-<h2 id="how-you-use-it">How you use it</h2>
+<h2 id="how-you-use-it">
+<a href="#how-you-use-it"></a>How you use it</h2>
 
 <p>As a Rails developer, you basically get CSRF protection for free. It starts with this single line in <code>application_controller.rb</code>, which enables CSRF protection:</p>
 
@@ -83,7 +85,8 @@ If you’re using Rails today, chances are you’re using CSRF protection. It’
 
 <p>… and that’s it. This has been in Rails for ages, and so we barely need to think about it. But how is this actually implemented under the hood?</p>
 
-<h2 id="generation-and-encryption">Generation and Encryption</h2>
+<h2 id="generation-and-encryption">
+<a href="#generation-and-encryption"></a>Generation and Encryption</h2>
 
 <p>We’ll start with <code>#csrf_meta_tags</code>. It’s a simple view helper that embeds the authenticity token into the HTML:</p>
 
@@ -164,7 +167,8 @@ If you’re using Rails today, chances are you’re using CSRF protection. It’
 <span class="o">&lt;</span><span class="n">meta</span> <span class="nb">name</span><span class="o">=</span><span class="s2">"csrf-token"</span> <span class="n">content</span><span class="o">=</span><span class="s2">"vtaJFQ38doX0b7wQpp0G3H7aUk9HZQni3jHET4yS8nSJRt85Tr6oH7nroQc01dM+C/dlDwt5xPff5LwyZcggeg=="</span> <span class="o">/&gt;</span>
 </code></pre></div></div>
 
-<h2 id="decryption-and-verification">Decryption and verification</h2>
+<h2 id="decryption-and-verification">
+<a href="#decryption-and-verification"></a>Decryption and verification</h2>
 
 <p>So far, we’ve covered how the CSRF token is generated, and how it ends up in your HTML and cookie. Next, let’s look at how Rails validates an incoming request.</p>
 
@@ -257,7 +261,8 @@ If you’re using Rails today, chances are you’re using CSRF protection. It’
 
 <hr>
 
-<h2 id="conclusion">Conclusion</h2>
+<h2 id="conclusion">
+<a href="#conclusion"></a>Conclusion</h2>
 
 <p>I had never given too much thought to CSRF protection before, since like so many other things in Rails, it “just works”. Every once in awhile, it’s fun to peek behind the magic curtain and see what’s actually going on.</p>
 

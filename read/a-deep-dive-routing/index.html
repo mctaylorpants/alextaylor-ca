@@ -61,7 +61,8 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 
 <p>With this in mind, let’s take some time to explore how routing works in Rails. How does a web request accepted by Rack make it all the way to your Rails controller?</p>
 
-<h2 id="familiar-territory">Familiar territory</h2>
+<h2 id="familiar-territory">
+<a href="#familiar-territory"></a>Familiar territory</h2>
 
 <p>For the purposes of this example, consider a Rails app with a single route and controller:</p>
 
@@ -79,7 +80,8 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 
 <p>In this app, a <code>GET</code> request to <code>/users</code> will be routed to the <code>UsersController</code>. But how?</p>
 
-<h2 id="orientation">Orientation</h2>
+<h2 id="orientation">
+<a href="#orientation"></a>Orientation</h2>
 
 <p>A lot of collaboration happens to get from request to controller, so it will be useful to get a bird’s eye view before diving in. Here’s a diagram that shows how routes defined in routes.rb are registered within Rails at boot time. We’ll explore these classes in more detail shortly:</p>
 
@@ -89,11 +91,13 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 
 <p><img src="/images/deep-dive-users-journey.png" alt="" class="pure-img"></p>
 
-<h2 id="routesrb">routes.rb</h2>
+<h2 id="routesrb">
+<a href="#routesrb"></a>routes.rb</h2>
 
 <p>The file you know and love! From a Rails framework perspective, this is the public interface. Declare your routes in this file, and Rails will take care of figuring out how to route a request to the right controller.</p>
 
-<h2 id="routeset">RouteSet</h2>
+<h2 id="routeset">
+<a href="#routeset"></a>RouteSet</h2>
 
 <p>I kind of lied when I said <code>routes.rb</code> was the public interface. It’s really a DSL to the public interface. The <code>RouteSet</code> is the actual class that acts as the entry point for route configuration in a Rails application. It’s most famous for the <code>#draw</code> method, which we’ve just used in <code>routes.rb</code>:</p>
 
@@ -103,7 +107,8 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 <span class="k">end</span>
 </code></pre></div></div>
 
-<h2 id="journeyroutes">Journey::Routes</h2>
+<h2 id="journeyroutes">
+<a href="#journeyroutes"></a>Journey::Routes</h2>
 
 <p>Once upon a time, <code>Journey</code> was <a href="https://github.com/rails/journey">a standalone gem</a>, before it was merged into ActionPack. It focuses on routes, and figuring out how to route an incoming request. It doesn’t know about Rails at all, nor does it care — give it a set of routes, then pass it a request, and it will route that request to the first route that matches.</p>
 
@@ -111,13 +116,15 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 
 <p><code>Journey::Routes</code> holds on to the routes that our Rails app knows about. <code>RouteSet</code> delegates to it whenever a new route is registered at startup, whether that’s from <code>routes.rb</code>, an engine, or a gem like <a href="https://github.com/plataformatec/devise"><code>Devise</code></a> that defines its own routes.</p>
 
-<h2 id="journeyroute">Journey::Route</h2>
+<h2 id="journeyroute">
+<a href="#journeyroute"></a>Journey::Route</h2>
 
 <p>If we think of <code>Journey::Routes</code> like an array, then <code>Journey::Route</code> objects are the elements inside. In addition to the metadata you’d expect this object to hold on to, like the path of the route, it also holds a reference to <code>app</code>, which will get invoked if that route is chosen to serve the request.</p>
 
 <p>In this way, each <code>Journey::Route</code> is kind of like a tiny web app that responds to a single endpoint. It has no knowledge of other routes aside from its own, but it can guide our request in the right direction when the time comes.</p>
 
-<h2 id="routesetdispatcher">RouteSet::Dispatcher</h2>
+<h2 id="routesetdispatcher">
+<a href="#routesetdispatcher"></a>RouteSet::Dispatcher</h2>
 
 <p>Contrary to what you might think, the app that lives inside of each <code>Journey::Route</code> object is not some reference to the controller. There’s one more level of indirection here, as a means of keeping Rails code separate from the routing logic that <code>Journey</code> concerns itself with.</p>
 
@@ -125,17 +132,20 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 
 <p>This might seem like an almost needless indirection, but it’s worthwhile considering that <code>Dispatcher</code>’s position between routing logic and controller classes allows either to change without affecting the other.</p>
 
-<h2 id="journeyrouter">Journey::Router</h2>
+<h2 id="journeyrouter">
+<a href="#journeyrouter"></a>Journey::Router</h2>
 
 <p><code>Journey::Routes</code> knows nothing about requests. It knows about routes, and it will quickly and efficiently identify the correct one for the request. So in order to map an incoming request to a route, we need something that knows about a request <em>and</em> a route. Enter <code>Router</code>.</p>
 
 <p>It’s <code>Router</code> that actually invokes the <code>Dispatcher</code> once a route has been found.</p>
 
-<h2 id="userscontroller">UsersController</h2>
+<h2 id="userscontroller">
+<a href="#userscontroller"></a>UsersController</h2>
 
 <p>Hey, we know what this is already! Welcome home. 😌 Now let’s connect the dots.</p>
 
-<h2 id="back-to-where-it-all-began">Back to where it all began…</h2>
+<h2 id="back-to-where-it-all-began">
+<a href="#back-to-where-it-all-began"></a>Back to where it all began…</h2>
 
 <p>Let’s circle back to our routes file:</p>
 
@@ -288,7 +298,8 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 <div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">UsersController</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">).</span><span class="nf">send</span><span class="p">(</span><span class="ss">:index</span><span class="p">)</span>
 </code></pre></div></div>
 
-<h2 id="unwinding-the-abstraction">Unwinding the Abstraction</h2>
+<h2 id="unwinding-the-abstraction">
+<a href="#unwinding-the-abstraction"></a>Unwinding the Abstraction</h2>
 
 <p>We just looked at a lot of objects. It can be hard to follow the path of execution when we need to bounce around so many different files. As a reminder, here’s the sequence of events again:</p>
 
@@ -313,7 +324,8 @@ Rails has a lot of magic that we often take for granted. A lot is going on the b
 <span class="k">end</span>
 </code></pre></div></div>
 
-<h2 id="conclusion">Conclusion</h2>
+<h2 id="conclusion">
+<a href="#conclusion"></a>Conclusion</h2>
 
 <p>If you made it this far, congratulations! 🎉 As you can see, there’s a lot going on behind the scenes, but hopefully this has helped to demystify some of the magic and appreciate the object-oriented principles at work.</p>
 

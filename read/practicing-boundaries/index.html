@@ -55,7 +55,8 @@
 
 <p>I’ve been trying to pay more attention to this rule recently, and I found a good example yesterday in some code I was writing.</p>
 
-<h2 id="how-it-started">How it started</h2>
+<h2 id="how-it-started">
+<a href="#how-it-started"></a>How it started</h2>
 <p>I’m working on a feature that needs to accept a CSV containing rows of account details, and apply those changes to each account. Even from that simple sentence alone, a pretty obvious boundary emerges:</p>
 
 <blockquote>
@@ -98,7 +99,8 @@
 
 <p>But once I had finished and I was looking it over again, I realized I had still broken a boundary. Can you spot it?</p>
 
-<h2 id="the-hidden-dependency">The (hidden?) dependency</h2>
+<h2 id="the-hidden-dependency">
+<a href="#the-hidden-dependency"></a>The (hidden?) dependency</h2>
 <p>It might look like <code>AccountUpdater</code> doesn’t have a dependency on the CSV, but it absolutely does:</p>
 
 <div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">csv</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">row</span><span class="o">|</span>
@@ -113,7 +115,8 @@
 
 <p>… however, we’re still leaking knowledge about the format of our CSV into <code>AccountUpdater</code>: it knows about our columns named <code>"Account Id"</code> and <code>"Favourite Tea"</code>.  We have subtly embedded knowledge about the structure of our user input into a class that should have no business handling user input.</p>
 
-<h2 id="how-its-going">How it’s going</h2>
+<h2 id="how-its-going">
+<a href="#how-its-going"></a>How it’s going</h2>
 <p>As soon as I realized this, I pulled that knowledge back up into the controller:</p>
 
 <div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">csv</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">row</span><span class="o">|</span>
@@ -137,7 +140,8 @@
 
 <p>Now, we’re using keyword arguments to create a simple boundary between the structure of the CSV data and the data that <code>AccountUpdater</code> needs.</p>
 
-<h2 id="lessons-learned">Lessons learned</h2>
+<h2 id="lessons-learned">
+<a href="#lessons-learned"></a>Lessons learned</h2>
 <p>By taking a closer look at our boundaries, we managed to create an even sharper delineation. Now, our user input is completely decoupled from our business logic, and both classes should be easier to change in the future.</p>
 
         </div>
