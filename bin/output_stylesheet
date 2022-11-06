@@ -3,5 +3,5 @@
 require "rouge"
 
 File.open("./content/code-highlighting.css", "w") do |file|
-  file << Rouge::Theme.find("base16.solarized").render(scope: '.highlight')
+  file << Rouge::Theme.find("github").render(scope: '.highlight')
 end

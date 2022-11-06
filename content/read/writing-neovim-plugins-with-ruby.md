@@ -39,6 +39,8 @@ This is all well and good, but let's have some more fun! Can we programatically 
 
 ![](/images/the-unseen-hand-of-rpc.gif){:class="pure-img"}
 
+---
+
 ## Writing a remote plugin
 Of course, booting a side process like this is fun, but not very practical. If we really want to drive Neovim with Ruby, we can write a remote plugin.
 
@@ -51,6 +53,8 @@ Neovim.plugin do |plug|
   end
 end
 ~~~
+
+---
 
 ![](/images/neovim-hello-world.gif){:class="pure-img"}
 
