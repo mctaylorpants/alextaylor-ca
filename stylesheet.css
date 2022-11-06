@@ -92,12 +92,12 @@ pre {
   margin-left: -1em;
   padding: 0.5em 1em 0.5em 1em;
   overflow: auto;
-  background: rgb(253, 250, 239);
+  background: "#fafafa";
 }
 
 code {
   font-size: 0.8em;
-  background: rgb(253, 250, 239);
+  background: "#fafafa";
 }
 
 .post-title {
