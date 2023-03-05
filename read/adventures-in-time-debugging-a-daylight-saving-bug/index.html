@@ -59,7 +59,7 @@ With Daylight saving time almost upon us again, I thought it would be fun to rev
 
 <h2 id="once-upon-a-time">
 <a href="#once-upon-a-time"></a>Once upon a time…</h2>
-<p>When subscribing a customer to a monthly plan in our billing system, we calculate the date of their next bill by adding 30 days to the current time, and using that to create a subscription on Stripe.</p>
+<p>When subscribing a customer to a monthly plan in our billing system, we calculate the date of the customer’s next bill by adding 30 days to their current time, and using that to create a subscription on Stripe.</p>
 
 <p>However, at some point in October, we started to see this fail:</p>
 
@@ -222,22 +222,15 @@ With Daylight saving time almost upon us again, I thought it would be fun to rev
 
 <p>And there’s our bug!</p>
 
-<h2 id="spoiler-alert-its-fixed-already">
-<a href="#spoiler-alert-its-fixed-already"></a>Spoiler alert: it’s fixed already</h2>
-
-<p>As it turns out, <a href="https://github.com/rails/rails/issues/45055">this bug had been reported a few months prior</a>, and <a href="https://github.com/rails/rails/pull/46251">fixed shortly afterwards</a>.</p>
-
-<p>Reading the fix was also illuminating, because it revealed more subtleties than I had considered in my initial debugging session. It turns out that I hadn’t considered how ActiveSupport is taking the time zone itself into account when performing this arithmetic. A humbling reminder that it’s always possible to get the right answer for the wrong reason.</p>
-
-<p>One thing is clear, though: time is hard!</p>
-
-<h2 id="the-end">
-<a href="#the-end"></a>The end</h2>
+<h2 id="the-end-or-is-it">
+<a href="#the-end-or-is-it"></a>The end… or is it?</h2>
 
 <p>Ultimately, the workaround on our side was a simple 5-character change: do our math with seconds instead of a <code>Duration</code> object:</p>
 
 <div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">subscription</span><span class="p">.</span><span class="nf">started_at</span> <span class="o">+</span> <span class="mi">30</span><span class="p">.</span><span class="nf">days</span><span class="p">.</span><span class="nf">to_i</span>
 </code></pre></div></div>
+
+<p>I was also curious to see if others had run into it, and sure enough, <a href="https://github.com/rails/rails/issues/45055">this bug had been reported a few months prior</a>. It was <a href="https://github.com/rails/rails/pull/46251">fixed shortly afterwards</a> in edge Rails, although it does seem like there’s still some discrepancies when doing arithmetic around the DST boundary. My takeaway: when in doubt, stick with plain ol’ seconds.</p>
 
 <p>I always have a hard … ahem, <em>time</em> … wrapping my head around time-related bugs. This one was a fun opportunity to dive in and get to the bottom of a hairy problem.</p>
 
