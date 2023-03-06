@@ -55,7 +55,7 @@ With Daylight saving time almost upon us again, I thought it would be fun to rev
 
           <p>What’s more fun than bugs? Bugs involving time! And none are so fascinating as bugs involving <em>daylight saving time.</em></p>
 
-<p>With Daylight saving time almost upon us again, I thought it would be fun to revisit this bug I stumbled across last fall.</p>
+<p>With Daylight saving time almost upon us again, I thought it would be fun to revisit this bug my team and I stumbled across last fall.</p>
 
 <h2 id="once-upon-a-time">
 <a href="#once-upon-a-time"></a>Once upon a time…</h2>
@@ -104,7 +104,7 @@ With Daylight saving time almost upon us again, I thought it would be fun to rev
 
 <p>Aha! There’s our bug. Depending on whether I use a <code>Duration</code> object or plain old seconds, I get a different answer. This feels like a daylight saving issue, since we’re crossing the boundary here, and our two times disagree by <em>exactly</em> an hour.</p>
 
-<p>Next, I want to test my hypothesis that this has something to do with crossing the daylight saving boundary. Let’s try the same test, but using a time that’s right before the boundary. Daylight saving ended on November 6, 2022 at 2am, so let’s start from 1 second before and add 1 day:</p>
+<p>Next, I want to confirm that this has something to do with crossing the daylight saving boundary. Let’s try the same test, but using a time that’s right before the boundary. Daylight saving ended on November 6, 2022 at 2am, so let’s start from 1 second before and add 1 day:</p>
 
 <div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="vg">$&gt;</span> <span class="no">Time</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="s2">"2022-11-06 01:59:59 -0700"</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">.</span><span class="nf">day</span>
 <span class="o">=&gt;</span> <span class="mi">2022</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mo">07</span> <span class="mo">01</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span> <span class="o">-</span><span class="mi">0800</span>
