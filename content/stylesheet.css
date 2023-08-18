@@ -76,6 +76,21 @@ hr {
   margin-top: 2em;
 }
 
+.article-box {
+  margin: 1em;
+  padding: 1em;
+  background: #ce0e2d;
+  color: white;
+  cursor: pointer;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.article-box a {
+  color: white;
+  text-decoration: none;
+}
+
 a {
   color: #ce0e2d;
 }

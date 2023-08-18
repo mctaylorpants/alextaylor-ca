@@ -52,10 +52,43 @@
           <% end %>
 
           <%= yield %>
+
         </div>
       </div>
 
       <div class="pure-u-1">
+        <% if item[:kind] == "article" %>
+          <div class="l-box">
+            <hr />
+
+            <p class="light">
+              <em>Keep reading:</em>
+            </p>
+
+            <% if newer_article = article_after(item) %>
+              <a href=<%= url_for(newer_article) %>>
+                <div class="article-box">
+                  <%= "❮ " + newer_article[:title] %>
+                </div>
+              </a>
+            <% end %>
+
+            <% if older_article = article_before(item) %>
+              <a href=<%= url_for(older_article) %>>
+                <div class="article-box" style="text-align: right">
+                  <%= older_article[:title] + " ❯" %>
+                </div>
+              </a>
+            <% end %>
+
+            <a href="/archive">
+              <div class="article-box" style="text-align: center">
+                Archive
+              </div>
+            </a>
+          </div>
+        <% end %>
+
         <div class="l-box">
           <hr />
           <p class="footer">
