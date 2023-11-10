@@ -76,7 +76,7 @@ Now we're getting somewhere: we can start building up a DSL in the `RouteConfig`
 But hang on - the Rails implementation doesn't do this. The block passed to `draw` takes no arguments, yet we can still use the routes DSL within it. What's going on?
 
 ## The magic of instance_eval ✨
-Enter [`instance_eval`.](https://www.rubydoc.info/stdlib/core/BasicObject:instance_eval) This Ruby method allows you to execute code in the context of another object. Effectively, it sets the value of `self` within the block to be whatever object you're calling `instance_eval` on.
+Enter [`instance_eval`](https://www.rubydoc.info/stdlib/core/BasicObject:instance_eval). This Ruby method allows you to execute code in the context of another object. Effectively, it sets the value of `self` within the block to be whatever object you're calling `instance_eval` on.
 
 With this in mind, we can refactor to call `instance_eval` on an instance of `RouteConfig`. Cool!
 
@@ -101,7 +101,7 @@ end
 
 ## Detour: blocks and closures
 
-Along the way to arriving at the solution, we ended up making a small mistake which lead to a deeper understanding - my favourite kind of mistake!
+Along the way to arriving at the solution, we ended up making a small mistake which led to a deeper understanding - my favourite kind of mistake!
 
 The first time we tried using `instance_eval`, we wrapped `block.call` within another block, like this:
 
