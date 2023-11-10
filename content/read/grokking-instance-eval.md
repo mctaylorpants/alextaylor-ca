@@ -81,18 +81,6 @@ Enter [`instance_eval`.](https://www.rubydoc.info/stdlib/core/BasicObject:instan
 With this in mind, we can refactor to call `instance_eval` on an instance of `RouteConfig`. Cool!
 
 ~~~ruby
-class RouteConfig
-  attr_reader :routes
-
-  def initialize
-    @routes = []
-  end
-
-  def get(path, controller_action)
-    routes << [path, controller_action]
-  end
-end
-
 def draw_routes(&block)
   puts "Defining routes..."
   route_config = RouteConfig.new
