@@ -4,7 +4,7 @@
   <title>alextaylor.ca</title>
   <updated>2023-11-10T00:00:00Z</updated>
   <link rel="alternate" href="https://alextaylor.ca/" type="text/html"/>
-  <link rel="self" href="https://alextaylor.ca/feed.xml" type="application/atom+xml"/>
+  <link rel="self" href="https://alextaylor.ca/atom.xml" type="application/atom+xml"/>
   <author>
     <name>Alex Taylor</name>
     <uri>https://alextaylor.ca</uri>
