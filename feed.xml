@@ -1,0 +1,637 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://alextaylor.ca/">
+  <id>https://alextaylor.ca/</id>
+  <title>alextaylor.ca</title>
+  <updated>2023-11-10T00:00:00Z</updated>
+  <link rel="alternate" href="https://alextaylor.ca/" type="text/html"/>
+  <link rel="self" href="https://alextaylor.ca/feed.xml" type="application/atom+xml"/>
+  <author>
+    <name>Alex Taylor</name>
+    <uri>https://alextaylor.ca</uri>
+  </author>
+  <entry>
+    <id>tag:alextaylor.ca,2023-11-10:/read/grokking-instance-eval/</id>
+    <title type="html">Grokking instance_eval</title>
+    <published>2023-11-10T00:00:00Z</published>
+    <updated>2023-11-10T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/grokking-instance-eval/" type="text/html"/>
+    <content type="html">&lt;p&gt;During a recent hackathon at work, I wanted to see how far I could get implementing Rails from scratch. (Spoiler alert: we got a basic “hello world” working with some routes, a controller and a model!)&lt;/p&gt;
+
+&lt;p&gt;One of the first things we did was implement a &lt;a href="https://en.wikipedia.org/wiki/Domain-specific_language"&gt;DSL&lt;/a&gt; for defining routes. We wanted to mimic the &lt;code&gt;draw&lt;/code&gt; interface from Rails, where you provide a block:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="no"&gt;Rails&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;routes&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;draw&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="n"&gt;get&lt;/span&gt; &lt;span class="s2"&gt;"users"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;to: &lt;/span&gt;&lt;span class="s2"&gt;"users#index"&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Along the way, I finally wrapped my head around &lt;code&gt;instance_eval&lt;/code&gt;, one of the great staples of metaprogramming in Ruby.&lt;/p&gt;
+
+&lt;h2 id="starting-small"&gt;
+&lt;a href="#starting-small"&gt;&lt;/a&gt;Starting small&lt;/h2&gt;
+
+&lt;p&gt;Normally, passing a block around is pretty easy if all you want to do is control when it’s executed. You could do something like this:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;draw_routes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nb"&gt;puts&lt;/span&gt; &lt;span class="s2"&gt;"Defining routes..."&lt;/span&gt;
+  &lt;span class="n"&gt;routes&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;call&lt;/span&gt;
+  &lt;span class="nb"&gt;puts&lt;/span&gt; &lt;span class="s2"&gt;"Routes:"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;routes&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;inspect&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="n"&gt;draw_routes&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="p"&gt;[&lt;/span&gt;
+    &lt;span class="ss"&gt;:get&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"users"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"users#index"&lt;/span&gt;
+  &lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="c1"&gt;# Defining routes...&lt;/span&gt;
+&lt;span class="c1"&gt;# Routes:&lt;/span&gt;
+&lt;span class="c1"&gt;# [:get, "users", "users#index"]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;… but that’s not very useful! We can’t really make a DSL this way because our block isn’t running within any special context, so we have nowhere to define methods like &lt;code&gt;#get&lt;/code&gt;, &lt;code&gt;#post&lt;/code&gt;, etc.&lt;/p&gt;
+
+&lt;p&gt;One option would be to pass some kind of configuration class into the block:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;RouteConfig&lt;/span&gt;
+  &lt;span class="nb"&gt;attr_reader&lt;/span&gt; &lt;span class="ss"&gt;:routes&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;initialize&lt;/span&gt;
+    &lt;span class="vi"&gt;@routes&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[]&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;controller_action&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;routes&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;controller_action&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;draw_routes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nb"&gt;puts&lt;/span&gt; &lt;span class="s2"&gt;"Defining routes..."&lt;/span&gt;
+  &lt;span class="n"&gt;route_config&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;RouteConfig&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;
+  &lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;call&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;route_config&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nb"&gt;puts&lt;/span&gt; &lt;span class="s2"&gt;"Routes:"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;route_config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;routes&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;inspect&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="n"&gt;draw_routes&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;routes&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+  &lt;span class="n"&gt;routes&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get&lt;/span&gt; &lt;span class="s2"&gt;"users"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"users#index"&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="c1"&gt;# Defining routes...&lt;/span&gt;
+&lt;span class="c1"&gt;# Routes:&lt;/span&gt;
+&lt;span class="c1"&gt;# [["users", "users#index"]]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now we’re getting somewhere: we can start building up a DSL in the &lt;code&gt;RouteConfig&lt;/code&gt; class.&lt;/p&gt;
+
+&lt;p&gt;But hang on - the Rails implementation doesn’t do this. The block passed to &lt;code&gt;draw&lt;/code&gt; takes no arguments, yet we can still use the routes DSL within it. What’s going on?&lt;/p&gt;
+
+&lt;h2 id="the-magic-of-instanceeval-"&gt;
+&lt;a href="#the-magic-of-instanceeval-"&gt;&lt;/a&gt;The magic of instance_eval ✨&lt;/h2&gt;
+&lt;p&gt;Enter &lt;a href="https://www.rubydoc.info/stdlib/core/BasicObject:instance_eval"&gt;&lt;code&gt;instance_eval&lt;/code&gt;&lt;/a&gt;. This Ruby method allows you to execute code in the context of another object. Effectively, it sets the value of &lt;code&gt;self&lt;/code&gt; within the block to be whatever object you’re calling &lt;code&gt;instance_eval&lt;/code&gt; on.&lt;/p&gt;
+
+&lt;p&gt;With this in mind, we can refactor to call &lt;code&gt;instance_eval&lt;/code&gt; on an instance of &lt;code&gt;RouteConfig&lt;/code&gt;. Cool!&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;draw_routes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nb"&gt;puts&lt;/span&gt; &lt;span class="s2"&gt;"Defining routes..."&lt;/span&gt;
+  &lt;span class="n"&gt;route_config&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;RouteConfig&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;
+  &lt;span class="n"&gt;route_config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;instance_eval&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nb"&gt;puts&lt;/span&gt; &lt;span class="s2"&gt;"Routes:"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;route_config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;routes&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;inspect&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="n"&gt;draw_routes&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="n"&gt;get&lt;/span&gt; &lt;span class="s2"&gt;"users"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"users#index"&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="c1"&gt;# Defining routes...&lt;/span&gt;
+&lt;span class="c1"&gt;# Routes:&lt;/span&gt;
+&lt;span class="c1"&gt;# [["users", "users#index"]]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;(Under the hood, Rails actually uses &lt;a href="https://www.rubydoc.info/stdlib/core/BasicObject#instance_exec-instance_method"&gt;&lt;code&gt;#instance_exec&lt;/code&gt;&lt;/a&gt;, which functions the same but allows you to pass arguments into the block, too. Although based on &lt;a href="https://github.com/rails/rails/blob/16607e349a0a371b403ae04489f9af9acfab9f17/actionpack/lib/action_dispatch/routing/route_set.rb#L444-L450"&gt;how it’s being used&lt;/a&gt;, I think &lt;code&gt;instance_eval&lt;/code&gt; would work just as well.)&lt;/p&gt;
+
+&lt;h2 id="detour-blocks-and-closures"&gt;
+&lt;a href="#detour-blocks-and-closures"&gt;&lt;/a&gt;Detour: blocks and closures&lt;/h2&gt;
+
+&lt;p&gt;Along the way to arriving at the solution, we ended up making a small mistake which led to a deeper understanding - my favourite kind of mistake!&lt;/p&gt;
+
+&lt;p&gt;The first time we tried using &lt;code&gt;instance_eval&lt;/code&gt;, we wrapped &lt;code&gt;block.call&lt;/code&gt; within another block, like this:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;draw_routes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="o"&gt;...&lt;/span&gt;
+  &lt;span class="n"&gt;route_config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;instance_eval&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;call&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="n"&gt;draw_routes&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="n"&gt;get&lt;/span&gt; &lt;span class="s2"&gt;"users"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"users#index"&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This did not work:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;undefined&lt;/span&gt; &lt;span class="nb"&gt;method&lt;/span&gt; &lt;span class="sb"&gt;`get' for main:Object (NoMethodError)
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This left us scratching our heads for awhile until my coworker suggested &lt;code&gt;instance_eval(&amp;amp;block)&lt;/code&gt;, which worked. But &lt;em&gt;why&lt;/em&gt; did it work?&lt;/p&gt;
+
+&lt;p&gt;It’s subtle, but in the example above there are two execution contexts:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;The context within the &lt;code&gt;instance_eval&lt;/code&gt; block, in which we already know &lt;code&gt;self&lt;/code&gt; will point to the receiving object;&lt;/li&gt;
+  &lt;li&gt;The context of the block itself.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;When we execute &lt;code&gt;block.call&lt;/code&gt; explicitly, the code within our block will run in its own context. The things it has access to - methods, variables, etc - are determined by this context. Another way of saying this is that the block &lt;em&gt;creates a &lt;a href="https://en.wikipedia.org/wiki/Closure_(computer_programming)"&gt;closure&lt;/a&gt;&lt;/em&gt; around the things it had access to wherever it was defined.&lt;/p&gt;
+
+&lt;p&gt;That’s why we can define a local variable outside of the block, but still have access to it when the block eventually executes:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;run_block&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nb"&gt;name&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;"Pepper"&lt;/span&gt;
+  &lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;call&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="nb"&gt;name&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;"Alex"&lt;/span&gt;
+&lt;span class="n"&gt;run_block&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="nb"&gt;puts&lt;/span&gt; &lt;span class="s2"&gt;"My name is &lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="nb"&gt;name&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="c1"&gt;# My name is Alex&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;It’s also what the error was trying to tell us: &lt;code&gt;undefined method 'get' for main:Object&lt;/code&gt; is saying that the context in which the block was defined - the top-level, &lt;code&gt;main&lt;/code&gt; context - doesn’t have a method named &lt;code&gt;get&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;So, back to &lt;code&gt;instance_eval&lt;/code&gt;. When we write our &lt;code&gt;#draw_routes&lt;/code&gt; method like this:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;draw_routes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="n"&gt;route_config&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;RouteConfig&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;
+  &lt;span class="n"&gt;route_config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;instance_eval&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We’re passing our block &lt;em&gt;directly&lt;/em&gt; to &lt;code&gt;instance_eval&lt;/code&gt;, which means that our block will have its execution context modified so that &lt;code&gt;self&lt;/code&gt; refers to the receiving object.&lt;/p&gt;
+
+&lt;p&gt;But wait, does it still keep its original closure? It sure does:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;users_endpoint&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;"users"&lt;/span&gt;
+&lt;span class="n"&gt;users_action&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;"users#index"&lt;/span&gt;
+
+&lt;span class="n"&gt;draw_routes&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="n"&gt;get&lt;/span&gt; &lt;span class="n"&gt;users_endpoint&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;users_action&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="c1"&gt;# Defining routes...&lt;/span&gt;
+&lt;span class="c1"&gt;# Routes:&lt;/span&gt;
+&lt;span class="c1"&gt;# [["users", "users#index"]]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I probably won’t have occasion to use &lt;code&gt;instance_eval&lt;/code&gt; any time soon in my day-to-day work, but it’s always fun digging into Ruby and gaining a deeper understanding.&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <id>tag:alextaylor.ca,2023-08-17:/read/the-20-20-20-rule/</id>
+    <title type="html">The 20/20/20 Rule for Micro-breaks</title>
+    <published>2023-08-17T00:00:00Z</published>
+    <updated>2023-08-17T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/the-20-20-20-rule/" type="text/html"/>
+    <content type="html">&lt;p&gt;The 20/20/20 rule has changed how I work, for the better – and not just for my eyes!&lt;/p&gt;
+
+&lt;p&gt;A few months ago, I started noticing my eyes becoming increasingly dry and tired after a long day staring at my computer screen. It’s so easy to forget to take breaks when you’re in the zone, and I realized I was becoming increasingly guilty of this.&lt;/p&gt;
+
+&lt;p&gt;When I started thinking about how I could build more regular breaks into my routine, I remembered something my optometrist told me about: &lt;a href="https://opto.ca/eye-health-library/20-20-20-rule"&gt;&lt;strong&gt;the 20/20/20 rule&lt;/strong&gt;&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id="minutes-20-seconds-20-feet"&gt;
+&lt;a href="#minutes-20-seconds-20-feet"&gt;&lt;/a&gt;20 minutes, 20 seconds, 20 feet&lt;/h2&gt;
+
+&lt;p&gt;Here’s how the 20/20/20 rule works:&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Every 20 minutes&lt;/strong&gt;, give your eyes a break by focusing on something &lt;strong&gt;20 feet away&lt;/strong&gt; for at least &lt;strong&gt;20 seconds&lt;/strong&gt;. This helps relax your eyes and goes a long way to prevent eye-strain from screen use.&lt;/p&gt;
+
+&lt;p&gt;(The sole disadvantage of the metric system is that 20/20/6.096 just doesn’t have the same ring to it. But I digress!)&lt;/p&gt;
+
+&lt;p&gt;There are lots of apps that help automate this habit: I ended up settling on &lt;a href="https://apps.apple.com/us/app/intermission-breaks-for-eyes/id1439431081?mt=12"&gt;Intermission&lt;/a&gt; for macOS, which is simple and flexible.&lt;/p&gt;
+
+&lt;h2 id="the-20-second-check-in"&gt;
+&lt;a href="#the-20-second-check-in"&gt;&lt;/a&gt;The 20-second check-in&lt;/h2&gt;
+
+&lt;p&gt;Following this rule has definitely helped with my eye strain – I’ve even got my coworkers in on it when the reminder pops up during a screen share!&lt;/p&gt;
+
+&lt;p&gt;But it’s not just my eyes that have benefited from this. I’ve started using the breaks in a few different ways:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+&lt;strong&gt;Avoid rabbit-holing&lt;/strong&gt;. If I’ve been stuck on something, I’ll ask myself during the break: what’s the real problem I’m trying to solve? Have I made any progress, or should I change my approach / ask someone for help?&lt;/li&gt;
+  &lt;li&gt;
+&lt;strong&gt;Take a step back&lt;/strong&gt;. How am I feeling? Am I stressed? Am I in the zone?&lt;/li&gt;
+  &lt;li&gt;
+&lt;strong&gt;Move around.&lt;/strong&gt; I’ll shake out my wrists or do some neck stretches while I stare off into the distance, and I might use the opportunity to switch from sitting to standing.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id="give-it-a-shot"&gt;
+&lt;a href="#give-it-a-shot"&gt;&lt;/a&gt;Give it a shot!&lt;/h2&gt;
+
+&lt;p&gt;I’ve really started to enjoy the cadence of these quick micro-breaks. One of the downsides is that it makes you extremely aware of the passage of time – especially if you use an app that never ceases to remind you. But overall, I’ve found it works well for me. My eyes certainly thank me for it!&lt;/p&gt;
+
+&lt;p&gt;If you also find yourself in need of more breaks, I’d encourage you to give the 20/20/20 rule a try!&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <id>tag:alextaylor.ca,2023-03-04:/read/adventures-in-time-debugging-a-daylight-saving-bug/</id>
+    <title type="html">Adventures in Time: Debugging a Daylight Saving Bug</title>
+    <published>2023-03-04T00:00:00Z</published>
+    <updated>2023-03-04T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/adventures-in-time-debugging-a-daylight-saving-bug/" type="text/html"/>
+    <content type="html">&lt;p&gt;What’s more fun than bugs? Bugs involving time! And none are so fascinating as bugs involving &lt;em&gt;daylight saving time.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;With Daylight saving time almost upon us again, I thought it would be fun to revisit this bug my team and I stumbled across last fall.&lt;/p&gt;
+
+&lt;h2 id="once-upon-a-time"&gt;
+&lt;a href="#once-upon-a-time"&gt;&lt;/a&gt;Once upon a time…&lt;/h2&gt;
+&lt;p&gt;When subscribing a customer to a monthly plan in our billing system, we calculate the date of the customer’s next bill by adding 30 days to their current time, and using that to create a subscription on Stripe.&lt;/p&gt;
+
+&lt;p&gt;However, at some point in October, we started to see this fail:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="no"&gt;Stripe&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;InvalidRequestError&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; 
+  &lt;span class="n"&gt;billing_cycle_anchor&lt;/span&gt; &lt;span class="n"&gt;cannot&lt;/span&gt; &lt;span class="n"&gt;be&lt;/span&gt; &lt;span class="n"&gt;later&lt;/span&gt; &lt;span class="n"&gt;than&lt;/span&gt; &lt;span class="k"&gt;next&lt;/span&gt;
+  &lt;span class="n"&gt;natural&lt;/span&gt; &lt;span class="n"&gt;billing&lt;/span&gt; &lt;span class="n"&gt;date&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1669817382&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;plan&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;When comparing the “natural billing date” to the time we sent the request, it was indeed more than 30 days in the future – by exactly an hour. Curious!&lt;/p&gt;
+
+&lt;h2 id="arithmetick-tock-"&gt;
+&lt;a href="#arithmetick-tock-"&gt;&lt;/a&gt;Arithmetick-tock ⏰&lt;/h2&gt;
+
+&lt;p&gt;In the code, we were doing something roughly like this to calculate the billing date:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;subscription&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;started_at&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;days&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code&gt;started_at&lt;/code&gt; is a &lt;code&gt;Time&lt;/code&gt; object, and we’re using the &lt;code&gt;ActiveSupport::Duration&lt;/code&gt; helpers to advance that time by exactly 30 days. So what’s the issue?&lt;/p&gt;
+
+&lt;p&gt;I fired up a console and started poking at this particular line of code to learn how it behaved.&lt;/p&gt;
+
+&lt;p&gt;First, a sanity-check: I want to make sure I know that &lt;code&gt;.days&lt;/code&gt; is giving me what I expect:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt; &lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;0700&lt;/span&gt;
+
+&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;24&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt; &lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;0700&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Ok, good! I get the same answer if I add the total number of seconds in a day. Makes sense.&lt;/p&gt;
+
+&lt;p&gt;Now, what happens if I do the same thing, but add 30 days?&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;days&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;14&lt;/span&gt; &lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
+
+&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;30&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;24&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;14&lt;/span&gt; &lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Aha! There’s our bug. Depending on whether I use a &lt;code&gt;Duration&lt;/code&gt; object or plain old seconds, I get a different answer. This feels like a daylight saving issue, since we’re crossing the boundary here, and our two times disagree by &lt;em&gt;exactly&lt;/em&gt; an hour.&lt;/p&gt;
+
+&lt;p&gt;Next, I want to confirm that this has something to do with crossing the daylight saving boundary. Let’s try the same test, but using a time that’s right before the boundary. Daylight saving ended on November 6, 2022 at 2am, so let’s start from 1 second before and add 1 day:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;07&lt;/span&gt; &lt;span class="mo"&gt;01&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
+
+&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;24&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;07&lt;/span&gt; &lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Still behaves the same. So we can confidently say that &lt;strong&gt;when crossing the DST boundary, adding a Duration to a timestamp yields a different time than adding a number of seconds.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;h2 id="testing-the-hypothesis"&gt;
+&lt;a href="#testing-the-hypothesis"&gt;&lt;/a&gt;Testing the hypothesis&lt;/h2&gt;
+
+&lt;p&gt;So which of the two answers above is correct?&lt;/p&gt;
+
+&lt;p&gt;It’s easier to answer that question with a shorter duration, so let’s work with plain seconds:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;06&lt;/span&gt; &lt;span class="mo"&gt;01&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;04&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This makes sense:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;We added 5 seconds to get to 02:00:04.&lt;/li&gt;
+  &lt;li&gt;Since daylight saving ended at 2am, we roll the clock back by 1 hour.&lt;/li&gt;
+  &lt;li&gt;We end up with 01:00:04, in GMT -8 instead of GMT -7.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Numbers don’t lie, but it seems like &lt;code&gt;ActiveSupport::Duration&lt;/code&gt; may be stretching the truth in this case.&lt;/p&gt;
+
+&lt;p&gt;So why does &lt;code&gt;1.day&lt;/code&gt; behave so differently?&lt;/p&gt;
+
+&lt;h2 id="down-the-rabbit-hole"&gt;
+&lt;a href="#down-the-rabbit-hole"&gt;&lt;/a&gt;Down the rabbit hole&lt;/h2&gt;
+
+&lt;p&gt;In order to explain the bug, we need some context on what happens when we add these two values together. Remember, since everything in Ruby is an object, an operation like &lt;code&gt;2 + 1&lt;/code&gt;  is really invoking the &lt;code&gt;+&lt;/code&gt; method on &lt;code&gt;2&lt;/code&gt;, and passing &lt;code&gt;1&lt;/code&gt; as an argument.&lt;/p&gt;
+
+&lt;p&gt;ActiveSupport implements methods like &lt;code&gt;+&lt;/code&gt; on &lt;code&gt;Duration&lt;/code&gt; objects so that you can add two of them together:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt; &lt;span class="n"&gt;days&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;That’s all fine and good when you have two &lt;code&gt;Duration&lt;/code&gt; objects, or at least when a &lt;code&gt;Duration&lt;/code&gt; object is the receiver (on the left-hand side of the operation). But we’ve got a plain ol’ Ruby class on the left:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here, we know the &lt;code&gt;+&lt;/code&gt; method is being invoked on our &lt;code&gt;Time&lt;/code&gt; object, yet somehow it knows what to do with an &lt;code&gt;ActiveSupport::Duration&lt;/code&gt;. How is that possible? Let’s introspect &lt;code&gt;+&lt;/code&gt; and see where it takes us:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;now&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;method&lt;/span&gt;&lt;span class="p"&gt;(:&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="c1"&gt;#&amp;lt;Method: Time#+(plus_with_duration)(other) /ruby/gems/2.7.0/gems/activesupport-5.2.8.1/lib/active_support/core_ext/time/calculations.rb:261&amp;gt;&lt;/span&gt;
+&lt;span class="c1"&gt;# active_support/core_ext/time/calculations.rb:261&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Hey, look! A monkey patch! 🙈&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="https://github.com/rails/rails/blob/8030cff808657faa44828de001cd3b80364597de/activesupport/lib/active_support/core_ext/time/calculations.rb#L261-L269"&gt;Let’s peek at that code&lt;/a&gt;:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;plus_with_duration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;#:nodoc:&lt;/span&gt;
+  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="no"&gt;ActiveSupport&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Duration&lt;/span&gt; &lt;span class="o"&gt;===&lt;/span&gt; &lt;span class="n"&gt;other&lt;/span&gt;
+    &lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;since&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;self&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;else&lt;/span&gt;
+    &lt;span class="n"&gt;plus_without_duration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="kp"&gt;alias_method&lt;/span&gt; &lt;span class="ss"&gt;:plus_without_duration&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;
+&lt;span class="kp"&gt;alias_method&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:plus_with_duration&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here, ActiveSupport has hooked into &lt;code&gt;+&lt;/code&gt; to customize the path taken if the value being added is a &lt;code&gt;Duration&lt;/code&gt; class. Otherwise, we can fall back on the original &lt;code&gt;+&lt;/code&gt; method.&lt;/p&gt;
+
+&lt;p&gt;This is the point where I break out a debugger like &lt;a href="https://github.com/pry/pry"&gt;pry&lt;/a&gt; to step through the code and see where it takes me. After &lt;code&gt;step&lt;/code&gt;ping into &lt;code&gt;#since&lt;/code&gt; and following the code path, &lt;a href="https://github.com/rails/rails/blob/8030cff808657faa44828de001cd3b80364597de/activesupport/lib/active_support/core_ext/time/calculations.rb#L175"&gt;I end up here&lt;/a&gt;:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;time_advanced_by_date&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;change&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;year: &lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;month: &lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;day: &lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Well, that’s interesting. Just looking at that method call, I can see that we’re dropping the hour, minute and second. And since I’m investigating a bug relating to an incorrect hour offset, this really piques my curiosity.&lt;/p&gt;
+
+&lt;p&gt;Let’s step down &lt;a href="https://github.com/rails/rails/blob/8030cff808657faa44828de001cd3b80364597de/activesupport/lib/active_support/core_ext/time/calculations.rb#L120"&gt;one more level into &lt;code&gt;#change&lt;/code&gt;&lt;/a&gt;, which lives in another monkey-patch on the &lt;code&gt;Time&lt;/code&gt; class:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;change&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;new_year&lt;/span&gt;   &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;year&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;new_month&lt;/span&gt;  &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;month&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;new_day&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;day&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;new_hour&lt;/span&gt;   &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hour&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;new_min&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="p"&gt;?&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;min&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;new_sec&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:sec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:min&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt; &lt;span class="p"&gt;?&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;sec&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;new_offset&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:offset&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kp"&gt;nil&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="o"&gt;...&lt;/span&gt;
+
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;new_offset&lt;/span&gt;
+      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_offset&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;elsif&lt;/span&gt; &lt;span class="n"&gt;utc?&lt;/span&gt;
+      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;utc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;elsif&lt;/span&gt; &lt;span class="n"&gt;zone&lt;/span&gt;
+      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;local&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;
+      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;utc_offset&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code&gt;change&lt;/code&gt; is finally the method which returns a new &lt;code&gt;Time&lt;/code&gt; object based on the results of the operation. Ultimately, we’re calling some variant of &lt;code&gt;Time.new&lt;/code&gt;, providing all-new values for the year, month, etc.&lt;/p&gt;
+
+&lt;p&gt;And where do we get all these new values?&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;new_hour&lt;/span&gt;   &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hour&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;If we didn’t pass it in from the arguments, then we fall back &lt;em&gt;to the existing &lt;code&gt;hour&lt;/code&gt;, &lt;code&gt;min&lt;/code&gt; and &lt;code&gt;sec&lt;/code&gt; value on the current &lt;code&gt;Time&lt;/code&gt; object.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;In other words, given our initial &lt;code&gt;Time&lt;/code&gt; object of &lt;code&gt;Time.parse("2022-11-06 01:59:59 -0700")&lt;/code&gt;, we’re going to add &lt;code&gt;1.day&lt;/code&gt; to the date only, then pin &lt;code&gt;01:59:59&lt;/code&gt; on the end of it.&lt;/p&gt;
+
+&lt;p&gt;And there’s our bug!&lt;/p&gt;
+
+&lt;h2 id="the-end-or-is-it"&gt;
+&lt;a href="#the-end-or-is-it"&gt;&lt;/a&gt;The end… or is it?&lt;/h2&gt;
+
+&lt;p&gt;Ultimately, the workaround on our side was a simple 5-character change: do our math with seconds instead of a &lt;code&gt;Duration&lt;/code&gt; object:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;subscription&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;started_at&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;days&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_i&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I was also curious to see if others had run into it, and sure enough, &lt;a href="https://github.com/rails/rails/issues/45055"&gt;this bug had been reported a few months prior&lt;/a&gt;. It was &lt;a href="https://github.com/rails/rails/pull/46251"&gt;fixed shortly afterwards&lt;/a&gt; in edge Rails, although it does seem like there’s still some discrepancies when doing arithmetic around the DST boundary. My takeaway: when in doubt, stick with plain ol’ seconds.&lt;/p&gt;
+
+&lt;p&gt;I always have a hard … ahem, &lt;em&gt;time&lt;/em&gt; … wrapping my head around time-related bugs. This one was a fun opportunity to dive in and get to the bottom of a hairy problem.&lt;/p&gt;
+
+&lt;p&gt;Thanks for reading!&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <id>tag:alextaylor.ca,2022-11-06:/read/writing-neovim-plugins-with-ruby/</id>
+    <title type="html">Writing Neovim plugins with Ruby</title>
+    <published>2022-11-06T00:00:00Z</published>
+    <updated>2022-11-06T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/writing-neovim-plugins-with-ruby/" type="text/html"/>
+    <content type="html">&lt;p&gt;I’ve been using &lt;a href="https://neovim.io/"&gt;Neovim&lt;/a&gt; for years, but the other day I made a delightful discovery: you can write plugins in Ruby! &lt;a href="https://github.com/neovim/neovim-ruby"&gt;There’s even an officially-supported library for it&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Let’s take it for a spin and see what it can do.&lt;/p&gt;
+
+&lt;h2 id="the-unseen-hand-of-rpc"&gt;
+&lt;a href="#the-unseen-hand-of-rpc"&gt;&lt;/a&gt;The unseen hand of RPC&lt;/h2&gt;
+&lt;p&gt;Neovim’s architecture supports the concept of remote plugins. These can be implemented as a process which receives RPC calls from the editor, and vice-versa.&lt;/p&gt;
+
+&lt;p&gt;neovim-ruby has a &lt;a href="https://github.com/neovim/neovim-ruby#usage"&gt;small example&lt;/a&gt; of how we can start a Ruby process and connect it to a running instance of Neovim. I took it a step further and used &lt;a href="https://github.com/pry/pry"&gt;pry&lt;/a&gt; so I could play around in a REPL:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="c1"&gt;#!/usr/bin/env ruby&lt;/span&gt;
+
+&lt;span class="nb"&gt;require&lt;/span&gt; &lt;span class="s2"&gt;"neovim"&lt;/span&gt;
+&lt;span class="nb"&gt;require&lt;/span&gt; &lt;span class="s2"&gt;"pry"&lt;/span&gt;
+
+&lt;span class="n"&gt;client&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Neovim&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;attach_unix&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"/tmp/nvim.sock"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="nb"&gt;binding&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;pry&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can start Neovim and have it listen on the socket we specified…&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;nvim --listen /tmp/nvim.sock
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;… and then boot the Ruby console. And voila! We can drive Neovim from Ruby 🤩&lt;/p&gt;
+
+&lt;p&gt;&lt;img src="/images/neovim-in-ruby.png" alt="" class="pure-img"&gt;&lt;/p&gt;
+
+&lt;p&gt;neovim-ruby gives you a nice object-oriented interface into the editor. Here, &lt;code&gt;client&lt;/code&gt; is Neovim itself, and I can access the currently-visible buffer with &lt;code&gt;get_current_buf&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;This is all well and good, but let’s have some more fun! Can we programatically insert a new line into the buffer? Of course we can:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src="/images/the-unseen-hand-of-rpc.gif" alt="" class="pure-img"&gt;&lt;/p&gt;
+
+&lt;hr&gt;
+
+&lt;h2 id="writing-a-remote-plugin"&gt;
+&lt;a href="#writing-a-remote-plugin"&gt;&lt;/a&gt;Writing a remote plugin&lt;/h2&gt;
+&lt;p&gt;Of course, booting a side process like this is fun, but not very practical. If we really want to drive Neovim with Ruby, we can write a remote plugin.&lt;/p&gt;
+
+&lt;p&gt;neovim-ruby lets us define a vim command as a block which will be called when that command is invoked in the editor. The “hello world” looks like this:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="no"&gt;Neovim&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;plugin&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+  &lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:HelloWorld&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+    &lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"echo 'Hello, world! 👋'"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;hr&gt;
+
+&lt;p&gt;&lt;img src="/images/neovim-hello-world.gif" alt="" class="pure-img"&gt;&lt;/p&gt;
+
+&lt;p&gt;Just like in our REPL, we’ve got access to the Neovim client itself, as the first argument to the block. If our command took arguments, those would get passed too.&lt;/p&gt;
+
+&lt;h2 id="evalruby-my-first-neovim-plugin"&gt;
+&lt;a href="#evalruby-my-first-neovim-plugin"&gt;&lt;/a&gt;EvalRuby: my first Neovim plugin&lt;/h2&gt;
+&lt;p&gt;Armed with this newfound power, I was thinking of something interesting I could do.&lt;/p&gt;
+
+&lt;p&gt;I always liked the “inline REPL” that Avdi Grimm uses for his &lt;a href="https://graceful.dev/"&gt;Graceful.Dev&lt;/a&gt; (formerly RubyTapas) screencasts. It lets him write a line of code in his editor, where it can be evaluated and returned as a comment. Kind of like this:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; 2&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;That sounds fun. Let’s build it!&lt;/p&gt;
+
+&lt;p&gt;First, we need to define our command. &lt;strong&gt;EvalRuby&lt;/strong&gt; seems like a fitting name.&lt;/p&gt;
+
+&lt;p&gt;I want to be able to select one or more lines to evaluate, so my command will need to work on ranges. According to &lt;a href="https://neovim.io/doc/user/map.html#E177"&gt;the Neovim docs&lt;/a&gt;, we just need to declare this up front:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code&gt;range_start&lt;/code&gt; and &lt;code&gt;range_end&lt;/code&gt; will be the line numbers of the selection, or they’ll
+be the same if we’re only selecting a single line.&lt;/p&gt;
+
+&lt;p&gt;Next, we need to pull out the content so we can &lt;code&gt;eval&lt;/code&gt; it! neovim-ruby gives us a handy &lt;code&gt;lines&lt;/code&gt; array in the current buffer. Since this array will be zero-indexed, we need to account for that:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+  &lt;span class="n"&gt;ruby_code&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nvim&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;lines&lt;/span&gt;&lt;span class="p"&gt;[(&lt;/span&gt;&lt;span class="n"&gt;range_start&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;..&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now that we’ve got the code, we have a legitimate excuse to use &lt;code&gt;eval&lt;/code&gt;. Hopefully we trust our own input 🤓&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+  &lt;span class="n"&gt;ruby_code&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nvim&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;lines&lt;/span&gt;&lt;span class="p"&gt;[(&lt;/span&gt;&lt;span class="n"&gt;range_start&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;..&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+  &lt;span class="n"&gt;result&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;begin&lt;/span&gt;
+             &lt;span class="nb"&gt;eval&lt;/span&gt; &lt;span class="n"&gt;ruby_code&lt;/span&gt;
+           &lt;span class="k"&gt;rescue&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;e&lt;/span&gt;
+             &lt;span class="s2"&gt;"! &lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;message&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt; (&lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;class&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;)"&lt;/span&gt;
+           &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To account for syntax errors, or lines that just aren’t Ruby, we can rescue any
+errors and spit that out as a comment, too.&lt;/p&gt;
+
+&lt;p&gt;Now that we’ve got the result, we can close the loop by appending it back
+into our editor below the selection:&lt;/p&gt;
+
+&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+  &lt;span class="n"&gt;ruby_code&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nvim&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;lines&lt;/span&gt;&lt;span class="p"&gt;[(&lt;/span&gt;&lt;span class="n"&gt;range_start&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;..&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+  &lt;span class="n"&gt;result&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;begin&lt;/span&gt;
+             &lt;span class="nb"&gt;eval&lt;/span&gt; &lt;span class="n"&gt;ruby_code&lt;/span&gt;
+           &lt;span class="k"&gt;rescue&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;e&lt;/span&gt;
+             &lt;span class="s2"&gt;"! &lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;message&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt; (&lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;class&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;)"&lt;/span&gt;
+           &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="n"&gt;nvim&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;append&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"# =&amp;gt; &lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;result&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;inspect&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And, behold! It works great 🎉&lt;/p&gt;
+
+&lt;p&gt;&lt;img src="/images/neovim-evalruby.gif" alt="" class="pure-img"&gt;&lt;/p&gt;
+
+&lt;h2 id="conclusion"&gt;
+&lt;a href="#conclusion"&gt;&lt;/a&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;This was a fun project, and I think I’ll actually get some use out of it, too; I often find myself jumping into IRB while I’m coding to try things out or demonstrate something while I’m pairing.&lt;/p&gt;
+
+&lt;p&gt;Now that I wield this power, I can see myself making all sorts of fun plugins.&lt;/p&gt;
+
+&lt;p&gt;If you want to check out the full code for EvalRuby, &lt;a href="https://gist.github.com/mctaylorpants/04a9353583681f48d90d4ac9f58d3485"&gt;I’ve put it up as a gist!&lt;/a&gt;&lt;/p&gt;
+
+</content>
+  </entry>
+  <entry>
+    <id>tag:alextaylor.ca,2022-08-31:/read/practicing-ortholinear/</id>
+    <title type="html">Practicing Ortholinear</title>
+    <published>2022-08-31T00:00:00Z</published>
+    <updated>2022-08-31T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/practicing-ortholinear/" type="text/html"/>
+    <content type="html">&lt;p&gt;I recently bought an &lt;a href="https://ergodox-ez.com/"&gt;ErgoDox EZ&lt;/a&gt; keyboard. The learning curve is quite steep; not only does the split design take some getting used to, the layout is ortholinear, meaning the rows of keys are not staggered like a normal keyboard, but are arranged in a straight line:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# a typical staggered layout:
+Q  W  E  R  T
+ A  S  D  F  G
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;# an ortholinear layout:
+Q  W  E  R  T
+A  S  D  F  G
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Ortholinear really messes with your muscle memory at first, in particular for the top and bottom rows. For example, to type ‘i’ on a staggered keyboard, your middle finger needs to move up and slightly to the left. On an ortholinear layout, you simply move straight up. Move too far to the left, and you might end up with a ‘u’ instead!&lt;/p&gt;
+
+&lt;p&gt;I’ve been using &lt;a href="https://monkeytype.com/"&gt;Monkeytype&lt;/a&gt; regularly for typing pratice, but I wanted a way to specifically retrain my fingers for the new top row/bottom row positioning. I wanted to focus on building good habits and making sure I was always moving straight up and down with each finger instead of reaching when I shouldn’t be. It occurred to me that I could focus my practice on the top and bottom rows more if I had a list of words consisting of only letters from those rows. So, I built one!&lt;/p&gt;
+
+&lt;h2 id="bash-ing-together-a-word-list"&gt;
+&lt;a href="#bash-ing-together-a-word-list"&gt;&lt;/a&gt;Bash-ing together a word list&lt;/h2&gt;
+&lt;p&gt;macOS ships with a dictionary file containing some 230,000+ “words”. You can find it here:&lt;/p&gt;
+
+&lt;div class="language-bash highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="nv"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="nb"&gt;cat&lt;/span&gt; /usr/share/dict/words | &lt;span class="nb"&gt;head&lt;/span&gt; &lt;span class="nt"&gt;-n&lt;/span&gt; 10
+
+A
+a
+aa
+aal
+aalii
+aam
+Aani
+aardvark
+aardwolf
+Aaron
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;After a brief Wikipedia detour to learn that an &lt;a href="https://en.wikipedia.org/wiki/Aardwolf"&gt;Aardwolf&lt;/a&gt; is, in fact, a real creature, I used &lt;code&gt;grep&lt;/code&gt; to filter the list down to only words that were composed of letters from the top and bottom rows:&lt;/p&gt;
+
+&lt;div class="language-bash highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="nv"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="nb"&gt;cat&lt;/span&gt; /usr/share/dict/words &lt;span class="se"&gt;\&lt;/span&gt;
+  | &lt;span class="nb"&gt;grep&lt;/span&gt; &lt;span class="nt"&gt;-E&lt;/span&gt; &lt;span class="s1"&gt;'^[qwertyuiopzxcvbnm]+$'&lt;/span&gt; &lt;span class="se"&gt;\&lt;/span&gt;
+  | &lt;span class="nb"&gt;head&lt;/span&gt; &lt;span class="nt"&gt;-n&lt;/span&gt; 10
+
+b
+be
+bebeerine
+bebeeru
+bebite
+bebop
+bebrine
+bebump
+becivet
+becobweb
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As strange as some of these words turned out to be, they made an excellent list for practicing ortholinear. I loaded this into &lt;a href="https://monkeytype.com/"&gt;Monkeytype&lt;/a&gt; and set about typing at a ponderous pace, staring at my hands to ensure I was reaching with the right fingers. So far, so good!&lt;/p&gt;
+</content>
+  </entry>
+</feed>
+
