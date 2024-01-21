@@ -24,9 +24,9 @@ compile '/**/*.md' do
   end
 end
 
-compile '/feed.erb' do
+compile '/atom.erb' do
   filter :erb
-  write '/feed.xml'
+  write '/atom.xml'
 end
 
 compile '/**/*' do
