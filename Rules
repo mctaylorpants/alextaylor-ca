@@ -24,6 +24,11 @@ compile '/**/*.md' do
   end
 end
 
+compile '/feed.erb' do
+  filter :erb
+  write '/feed.xml'
+end
+
 compile '/**/*' do
   write item.identifier.to_s
 end
