@@ -2,13 +2,134 @@
 <feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://alextaylor.ca/">
   <id>https://alextaylor.ca/</id>
   <title>alextaylor.ca</title>
-  <updated>2023-11-10T00:00:00Z</updated>
+  <updated>2024-03-07T00:00:00Z</updated>
   <link rel="alternate" href="https://alextaylor.ca/" type="text/html"/>
   <link rel="self" href="https://alextaylor.ca/atom.xml" type="application/atom+xml"/>
   <author>
     <name>Alex Taylor</name>
     <uri>https://alextaylor.ca</uri>
   </author>
+  <entry>
+    <id>tag:alextaylor.ca,2024-03-07:/read/mysql-slow-query-log/</id>
+    <title type="html">Playing with MySQL's slow query log</title>
+    <published>2024-03-07T00:00:00Z</published>
+    <updated>2024-03-07T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/mysql-slow-query-log/" type="text/html"/>
+    <content type="html">&lt;p&gt;Like any developer, I love a good feedback loop. Not only is a quick feedback loop essential for flow, it’s also usually the best way to wrap your head around how something works.&lt;/p&gt;
+
+&lt;p&gt;But feedback loops can be harder to come by when you’re dealing with optimizing poorly-performing database queries. A bad query in production is like a bug that needs to be reproduced - or at least understood - before you can fix it; but since the poor performance is almost always related to the data it’s operating on, you can’t usually run it locally and get the same results. (And I hope you can’t “just” run it in a console on production, either! 😱)&lt;/p&gt;
+
+&lt;p&gt;So instead of feedback loops, we need to rely on telemetry, like &lt;code&gt;EXPLAIN&lt;/code&gt;s run on production or MySQL’s slow query log, which provides insightful statistics on what’s happening under the hood.&lt;/p&gt;
+
+&lt;p&gt;In order to get more familiar with the slow query log’s format and what it can tell me about queries, I decided to turn it on locally.&lt;/p&gt;
+
+&lt;h2 id="hello-slow-query-log"&gt;
+&lt;a href="#hello-slow-query-log"&gt;&lt;/a&gt;Hello, slow query log&lt;/h2&gt;
+
+&lt;p&gt;First, I logged on to my app’s MySQL instance as root so I could flip a couple switches.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$&amp;gt; mysql -u root -p -h 127.0.0.1 -P 3306
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The slow query log’s controlled by the &lt;code&gt;slow_query_log&lt;/code&gt; variable. You can also customize what counts as a “slow query”. For learning purposes, I wanted the most pessimistic definition of a slow query, which is to say any query that takes any time to execute at all!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set global slow_query_log = 'on';
+mysql&amp;gt; set global long_query_time = 0;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Next, I needed to figure out where this thing actually logs to. That’s another variable (which can be customized if needed):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show variables like 'slow_query_log_file';
+
++---------------------+-------------------------------+
+| Variable_name       | Value                         |
++---------------------+-------------------------------+
+| slow_query_log_file | /var/lib/mysql/mysql-slow.log |
++---------------------+-------------------------------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id="setting-up-a-feedback-loop"&gt;
+&lt;a href="#setting-up-a-feedback-loop"&gt;&lt;/a&gt;Setting up a feedback loop&lt;/h2&gt;
+
+&lt;p&gt;With that enabled, I opened another terminal and started tailing the log, so I could write queries in one window and see the results in the other. Boom, feedback loop!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$&amp;gt; tail -f /var/lib/mysql/mysql-slow.log
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id="grokking-the-output"&gt;
+&lt;a href="#grokking-the-output"&gt;&lt;/a&gt;Grokking the output&lt;/h2&gt;
+
+&lt;p&gt;Let’s fire off a query to see what it looks like. I started with something basic, &lt;code&gt;select id from notes&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Here’s what my output looks like. The query’s at the bottom, with all the metrics about that query displayed as comments above:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Time: 240229 13:17:28
+# User@Host: root[root] @  [192.168.65.1]  Id:    66
+# Schema: development_1  Last_errno: 0  Killed: 0
+# ...  Rows_sent: 10025  Rows_examined: 10025  Rows_affected: 0
+# Bytes_sent: 110358  Tmp_tables: 0  Tmp_disk_tables: 0  Tmp_table_sizes: 0
+# InnoDB_trx_id: FE20C
+# QC_Hit: No  Full_scan: Yes  Full_join: No  Tmp_table: No  Tmp_table_on_disk: No
+# Filesort: No  Filesort_on_disk: No  Merge_passes: 0
+#   InnoDB_IO_r_ops: 0  InnoDB_IO_r_bytes: 0  InnoDB_IO_r_wait: 0.000000
+#   InnoDB_rec_lock_wait: 0.000000  InnoDB_queue_wait: 0.000000
+#   InnoDB_pages_distinct: 14
+select id from notes;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;There’s a lot of output here, but what I focused on first was &lt;code&gt;Rows_sent&lt;/code&gt; and &lt;code&gt;Rows_examined&lt;/code&gt;. When these values differ wildly, it can be a sign that the query is not as performant as it could be.&lt;/p&gt;
+
+&lt;h2 id="examining-rowsexamined"&gt;
+&lt;a href="#examining-rowsexamined"&gt;&lt;/a&gt;Examining &lt;code&gt;Rows_examined&lt;/code&gt;
+&lt;/h2&gt;
+
+&lt;p&gt;Right now, my &lt;code&gt;notes&lt;/code&gt; table has 20,036 records in it:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select count(*) from notes;
++----------+
+| count(*) |
++----------+
+|    20036 |
++----------+
+1 row in set (0.01 sec)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;When I issue a simple query to fetch all the IDs, &lt;code&gt;Rows_sent&lt;/code&gt; and &lt;code&gt;Rows_examined&lt;/code&gt; are identical, since MySQL can use the &lt;code&gt;PRIMARY&lt;/code&gt; index without any additional overhead:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Rows_sent: 20036  Rows_examined: 20036  Rows_affected: 0
+select id from notes;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;What happens if I add an &lt;code&gt;order by&lt;/code&gt; on a column which is &lt;em&gt;not&lt;/em&gt; indexed?&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Rows_sent: 20036  Rows_examined: 40072  Rows_affected: 0
+select id from notes order by date;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;Rows_examined&lt;/code&gt; doubles!&lt;/p&gt;
+
+&lt;p&gt;Compare this to ordering by &lt;code&gt;account_id&lt;/code&gt;, which &lt;em&gt;is&lt;/em&gt; indexed:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Rows_sent: 20036  Rows_examined: 20036  Rows_affected: 0
+select id from notes order by account_id;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I’m guessing that since MySQL is able to pull that query in the same order as the index, there’s no additional overhead to the sort. On the other hand, sorting by an un-indexed column looks like it’s two steps: pulling the data, then looking at &lt;code&gt;date&lt;/code&gt; on each row.&lt;/p&gt;
+
+&lt;h2 id="conclusion"&gt;
+&lt;a href="#conclusion"&gt;&lt;/a&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;I learned a few useful things from playing around with the slow query log:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Being able to see instant telemetry about the query I just ran makes for a great feedback loop. It doesn’t address the challenge of reproducing a poorly-performing query locally, but being able to experiment and understand the output comes in handy when looking at real slow-query logs from production.&lt;/li&gt;
+  &lt;li&gt;The slow-query log makes a great complement to an &lt;code&gt;EXPLAIN&lt;/code&gt; plan: an &lt;code&gt;EXPLAIN&lt;/code&gt; tells you what’s &lt;em&gt;going&lt;/em&gt; to happen, whereas the slow query log tells you what &lt;em&gt;actually&lt;/em&gt; happened.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;That’s it for now!&lt;/p&gt;
+</content>
+  </entry>
   <entry>
     <id>tag:alextaylor.ca,2023-11-10:/read/grokking-instance-eval/</id>
     <title type="html">Grokking instance_eval</title>
@@ -570,67 +691,6 @@ into our editor below the selection:&lt;/p&gt;
 
 &lt;p&gt;If you want to check out the full code for EvalRuby, &lt;a href="https://gist.github.com/mctaylorpants/04a9353583681f48d90d4ac9f58d3485"&gt;I’ve put it up as a gist!&lt;/a&gt;&lt;/p&gt;
 
-</content>
-  </entry>
-  <entry>
-    <id>tag:alextaylor.ca,2022-08-31:/read/practicing-ortholinear/</id>
-    <title type="html">Practicing Ortholinear</title>
-    <published>2022-08-31T00:00:00Z</published>
-    <updated>2022-08-31T00:00:00Z</updated>
-    <link rel="alternate" href="https://alextaylor.ca/read/practicing-ortholinear/" type="text/html"/>
-    <content type="html">&lt;p&gt;I recently bought an &lt;a href="https://ergodox-ez.com/"&gt;ErgoDox EZ&lt;/a&gt; keyboard. The learning curve is quite steep; not only does the split design take some getting used to, the layout is ortholinear, meaning the rows of keys are not staggered like a normal keyboard, but are arranged in a straight line:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# a typical staggered layout:
-Q  W  E  R  T
- A  S  D  F  G
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;pre&gt;&lt;code&gt;# an ortholinear layout:
-Q  W  E  R  T
-A  S  D  F  G
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Ortholinear really messes with your muscle memory at first, in particular for the top and bottom rows. For example, to type ‘i’ on a staggered keyboard, your middle finger needs to move up and slightly to the left. On an ortholinear layout, you simply move straight up. Move too far to the left, and you might end up with a ‘u’ instead!&lt;/p&gt;
-
-&lt;p&gt;I’ve been using &lt;a href="https://monkeytype.com/"&gt;Monkeytype&lt;/a&gt; regularly for typing pratice, but I wanted a way to specifically retrain my fingers for the new top row/bottom row positioning. I wanted to focus on building good habits and making sure I was always moving straight up and down with each finger instead of reaching when I shouldn’t be. It occurred to me that I could focus my practice on the top and bottom rows more if I had a list of words consisting of only letters from those rows. So, I built one!&lt;/p&gt;
-
-&lt;h2 id="bash-ing-together-a-word-list"&gt;
-&lt;a href="#bash-ing-together-a-word-list"&gt;&lt;/a&gt;Bash-ing together a word list&lt;/h2&gt;
-&lt;p&gt;macOS ships with a dictionary file containing some 230,000+ “words”. You can find it here:&lt;/p&gt;
-
-&lt;div class="language-bash highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="nv"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="nb"&gt;cat&lt;/span&gt; /usr/share/dict/words | &lt;span class="nb"&gt;head&lt;/span&gt; &lt;span class="nt"&gt;-n&lt;/span&gt; 10
-
-A
-a
-aa
-aal
-aalii
-aam
-Aani
-aardvark
-aardwolf
-Aaron
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;After a brief Wikipedia detour to learn that an &lt;a href="https://en.wikipedia.org/wiki/Aardwolf"&gt;Aardwolf&lt;/a&gt; is, in fact, a real creature, I used &lt;code&gt;grep&lt;/code&gt; to filter the list down to only words that were composed of letters from the top and bottom rows:&lt;/p&gt;
-
-&lt;div class="language-bash highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="nv"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="nb"&gt;cat&lt;/span&gt; /usr/share/dict/words &lt;span class="se"&gt;\&lt;/span&gt;
-  | &lt;span class="nb"&gt;grep&lt;/span&gt; &lt;span class="nt"&gt;-E&lt;/span&gt; &lt;span class="s1"&gt;'^[qwertyuiopzxcvbnm]+$'&lt;/span&gt; &lt;span class="se"&gt;\&lt;/span&gt;
-  | &lt;span class="nb"&gt;head&lt;/span&gt; &lt;span class="nt"&gt;-n&lt;/span&gt; 10
-
-b
-be
-bebeerine
-bebeeru
-bebite
-bebop
-bebrine
-bebump
-becivet
-becobweb
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;As strange as some of these words turned out to be, they made an excellent list for practicing ortholinear. I loaded this into &lt;a href="https://monkeytype.com/"&gt;Monkeytype&lt;/a&gt; and set about typing at a ponderous pace, staring at my hands to ensure I was reaching with the right fingers. So far, so good!&lt;/p&gt;
 </content>
   </entry>
 </feed>
