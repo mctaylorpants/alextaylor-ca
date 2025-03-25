@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="generator" content="Nanoc 4.12.2">
+    <meta name="generator" content="Nanoc 4.13.3">
 
     <title>alextaylor.ca - Conditionals: Better at the Edges</title>
 
@@ -78,9 +78,9 @@
 
 <span class="kd">const</span> <span class="nx">users</span><span class="p">:</span> <span class="nx">UserLike</span><span class="p">[]</span> <span class="o">=</span> <span class="p">[];</span>
 
-<span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">userList</span> <span class="k">of</span> <span class="nx">userLists</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">user</span> <span class="k">of</span> <span class="nx">userList</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">users</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
+<span class="k">for </span><span class="p">(</span><span class="kd">let</span> <span class="nx">userList</span> <span class="k">of</span> <span class="nx">userLists</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">for </span><span class="p">(</span><span class="kd">let</span> <span class="nx">user</span> <span class="k">of</span> <span class="nx">userList</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">users</span><span class="p">.</span><span class="nf">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
       <span class="p">...</span><span class="nx">user</span><span class="p">,</span>
       <span class="na">name</span><span class="p">:</span> <span class="nx">user</span><span class="p">.</span><span class="nx">name</span> <span class="o">||</span> <span class="kc">null</span><span class="p">,</span>
       <span class="na">roles</span><span class="p">:</span> <span class="nx">user</span><span class="p">.</span><span class="nx">roles</span> <span class="o">||</span> <span class="p">[],</span>
@@ -125,8 +125,8 @@
 
 <span class="kd">const</span> <span class="nx">users</span><span class="p">:</span> <span class="nx">UserLike</span><span class="p">[]</span> <span class="o">=</span> <span class="p">[];</span>
 
-<span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">invitation</span> <span class="k">of</span> <span class="nx">invitationsList</span><span class="p">)</span> <span class="p">{</span>
-  <span class="nx">users</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
+<span class="k">for </span><span class="p">(</span><span class="kd">let</span> <span class="nx">invitation</span> <span class="k">of</span> <span class="nx">invitationsList</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">users</span><span class="p">.</span><span class="nf">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
     <span class="p">...</span><span class="nx">invitation</span><span class="p">,</span>
     <span class="na">name</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
     <span class="na">rate</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
@@ -134,16 +134,16 @@
   <span class="p">});</span>
 <span class="p">}</span>
 
-<span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">user</span> <span class="k">of</span> <span class="nx">usersList</span><span class="p">)</span> <span class="p">{</span>
-  <span class="nx">users</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
+<span class="k">for </span><span class="p">(</span><span class="kd">let</span> <span class="nx">user</span> <span class="k">of</span> <span class="nx">usersList</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">users</span><span class="p">.</span><span class="nf">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
     <span class="p">...</span><span class="nx">user</span><span class="p">,</span>
     <span class="na">status</span><span class="p">:</span> <span class="nx">user</span><span class="p">.</span><span class="nx">enabled</span> <span class="p">?</span> <span class="nx">UserStatus</span><span class="p">.</span><span class="nx">Active</span> <span class="p">:</span> <span class="nx">UserStatus</span><span class="p">.</span><span class="nx">Inactive</span><span class="p">,</span>
     <span class="na">user_type</span><span class="p">:</span> <span class="nx">user</span><span class="p">.</span><span class="nx">subscription_type</span><span class="p">,</span>
   <span class="p">});</span>
 <span class="p">}</span>
 
-<span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">subscription</span> <span class="k">of</span> <span class="nx">subscriptionsList</span><span class="p">)</span> <span class="p">{</span>
-  <span class="nx">users</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
+<span class="k">for </span><span class="p">(</span><span class="kd">let</span> <span class="nx">subscription</span> <span class="k">of</span> <span class="nx">subscriptionsList</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">users</span><span class="p">.</span><span class="nf">push</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">{</span>
     <span class="p">...</span><span class="nx">subscription</span><span class="p">,</span>
     <span class="na">name</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
     <span class="na">rate</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
@@ -203,7 +203,7 @@
         <div class="l-box">
           <hr />
           <p class="footer">
-            &copy; 2024 <strong>Alex Taylor</strong>
+            &copy; 2025 <strong>Alex Taylor</strong>
           </p>
           <p class="footer">
             <a href="https://alextaylor.ca/atom.xml">atom feed</a>

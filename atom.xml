@@ -2,13 +2,93 @@
 <feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://alextaylor.ca/">
   <id>https://alextaylor.ca/</id>
   <title>alextaylor.ca</title>
-  <updated>2024-03-07T00:00:00Z</updated>
+  <updated>2025-03-24T00:00:00Z</updated>
   <link rel="alternate" href="https://alextaylor.ca/" type="text/html"/>
   <link rel="self" href="https://alextaylor.ca/atom.xml" type="application/atom+xml"/>
   <author>
     <name>Alex Taylor</name>
     <uri>https://alextaylor.ca</uri>
   </author>
+  <entry>
+    <id>tag:alextaylor.ca,2025-03-24:/read/down-a-qmk-rabbit-hole/</id>
+    <title type="html">Down a QMK rabbit hole</title>
+    <published>2025-03-24T00:00:00Z</published>
+    <updated>2025-03-24T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/down-a-qmk-rabbit-hole/" type="text/html"/>
+    <content type="html">&lt;p&gt;Today I went down a fun rabbit hole of &lt;a href="https://qmk.fm/"&gt;QMK&lt;/a&gt;, the open-source firmware for mechanical keyboards (and other input devices). Like the start of any good rabbit hole, it all started with an extremely specific mission: fixing a minor nit with my new keyboard.&lt;/p&gt;
+
+&lt;h2 id="tapping-too-fast"&gt;
+&lt;a href="#tapping-too-fast"&gt;&lt;/a&gt;TAPPING too fast&lt;/h2&gt;
+&lt;p&gt;I bought a &lt;a href="https://nuphy.com/collections/keyboards/products/air75-v2"&gt;NuPhy Air75 V2&lt;/a&gt; to try out a low-profile mechanical keyboard (it’s also nice that it’s wireless!).&lt;/p&gt;
+
+&lt;p&gt;I started using &lt;a href="https://caniusevia.com/"&gt;VIA Configurator&lt;/a&gt; to remap keys. In particular, I wanted to try a home-row arrow setup which would let me use the vim-style mapping of h, j, k, and l as ←, ↑, ↓, and →. Since I still obviously want to use those keys for their intended alphabetical purpose, a modifier key was in order. Hey, Caps Lock is on the home row too, and I already remap it to Esc… why not modify it even further so that holding down Caps Lock triggers another layer?&lt;/p&gt;
+
+&lt;p&gt;After a few trips to Google and Claude, I got the mapping code I wanted:&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;
+LT(7, KC_ESC)
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;I used the &lt;code&gt;LT&lt;/code&gt; (“layer tap”) function to activate layer 7 when held, or Esc when tapped. From there, it was a simple matter to remap h, j, k and l to the arrow keys on layer 7. Perfect!&lt;/p&gt;
+
+&lt;p&gt;… and then I tried using it.&lt;/p&gt;
+
+&lt;p&gt;As it turns out, when I use arrow keys, I use them quickly. I’m often tapping up on the command-line or in the address bar to navigate history. Using the layer-tap, I found it wasn’t responding quickly enough and I’d end up sending “k” instead of “up” unless I held down Caps Lock for a (admittedly minuscule, but nevertheless infuriating) moment.&lt;/p&gt;
+
+&lt;p&gt;More trips to the search gods led me to a tantalizing solution: a config setting named “&lt;a href="https://docs.qmk.fm/tap_hold#hold-on-other-key-press"&gt;Hold On Other Key Press&lt;/a&gt;”. From the docs:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;This mode makes tap and hold keys (like Layer Tap) work better for fast typists&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;It me! Problem solved. Except, this option is &lt;em&gt;not&lt;/em&gt; configurable through VIA Configurator: it’s a lower-level configuration that needs to be set in the firmware itself.&lt;/p&gt;
+
+&lt;p&gt;Enter my QMK rabbit hole.&lt;/p&gt;
+
+&lt;h2 id="down-we-go"&gt;
+&lt;a href="#down-we-go"&gt;&lt;/a&gt;Down we go…&lt;/h2&gt;
+
+&lt;p&gt;As far as rabbit holes go, this ended up being a shallow one. QMK’s toolchain is really nice, and pleasant to work with. I ran through &lt;a href="https://docs.qmk.fm/newbs_getting_started"&gt;the tutorial&lt;/a&gt; and found my way to Reddit when I realized that NuPhy’s QMK support is not particularly straightforward.&lt;/p&gt;
+
+&lt;p&gt;Here’s what I ended up doing:&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Set up QMK with NuPhy’s custom branch.&lt;/strong&gt; I found &lt;a href="https://www.reddit.com/r/NuPhy/comments/1dsve0c/compiling_qmk_for_nuphy_keyboards_spoiler_alert/"&gt;a helpful Reddit post&lt;/a&gt; on how to do this, since NuPhy’s keyboards haven’t made their way into the main QMK repo yet - they’ve got their own fork.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;
+qmk setup nuphy-src/qmk_firmware -b nuphy-keyboards
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Mercifully, I had none of the compile issues mentioned in the thread!&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Take the compiler for a spin.&lt;/strong&gt; As suggested in the Reddit post, I tried compiling the keymap built for VIA Configurator:&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;
+qmk compile -kb nuphy/air75_v2/ansi -km via
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;This generated a &lt;code&gt;.bin&lt;/code&gt; file, which I could use to…&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Flash the firmware.&lt;/strong&gt; I used &lt;a href="https://qmk.fm/toolbox"&gt;QMK Toolbox&lt;/a&gt; to load the &lt;code&gt;.bin&lt;/code&gt; file and flash the firmware on to my keyboard (which involved holding down Esc when you plug it in to boot the keyboard into flashing mode).&lt;/p&gt;
+
+&lt;h2 id="new-firmware-who-dis"&gt;
+&lt;a href="#new-firmware-who-dis"&gt;&lt;/a&gt;New firmware, who dis?&lt;/h2&gt;
+
+&lt;p&gt;After poking around with various configuration files, I got myself oriented:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+&lt;code&gt;keyboards/nuphy/air75_v2/ansi&lt;/code&gt; is the root folder of the firmware I’m working with; it’s full of C files that configure the keyboard itself, and what ends up compiling down to the &lt;code&gt;.bin&lt;/code&gt; file.&lt;/li&gt;
+  &lt;li&gt;Within this folder, &lt;code&gt;config.h&lt;/code&gt; contains a bunch of - unsurprisingly - config directives. Here I added one line: &lt;strong&gt;&lt;code&gt;#define HOLD_ON_OTHER_KEY_PRESS&lt;/code&gt;&lt;/strong&gt;, which is the whole reason I went on this journey in the first place!&lt;/li&gt;
+  &lt;li&gt;There’s a &lt;code&gt;keymaps&lt;/code&gt; folder where you can store various mappings of the keys themselves. I suppose this is more “user-facing” so it’s kept separate from the lower-level config of the keyboard. I know you can define your own custom keymap, but I didn’t touch anything in here because I want to keep using VIA Configurator while I’m playing around layout.&lt;/li&gt;
+  &lt;li&gt;Finally, I have a &lt;code&gt;json&lt;/code&gt; file I exported from VIA Configurator’s web UI after I set up my key mappings. This is &lt;em&gt;not&lt;/em&gt; the same format as QMK’s JSON format (&lt;a href="https://github.com/nuphy-src/qmk_firmware/blob/nuphy-keyboards/keyboards/nuphy/air75_v2/ansi/keymaps/via/NuPhy%20Air75%20V2%20via3.json"&gt;like this one provided by NuPhy for use in VIA&lt;/a&gt;), which was confusing to me at first. For VIA, I think the QMK JSON file is used to load in the keyboard definition, and the exportable JSON file is just used for saving the updated key mapping.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Eventually once I’m reasonably happy with the layout, I could conceivably compile it directly into the default keymap. But for now, this toolchain works nicely!&lt;/p&gt;
+
+&lt;p&gt;And the best part: now my arrow-taps are lightning fast! ⚡️&lt;/p&gt;
+
+</content>
+  </entry>
   <entry>
     <id>tag:alextaylor.ca,2024-03-07:/read/mysql-slow-query-log/</id>
     <title type="html">Playing with MySQL's slow query log</title>
@@ -543,154 +623,6 @@ select id from notes order by account_id;
 &lt;p&gt;I always have a hard … ahem, &lt;em&gt;time&lt;/em&gt; … wrapping my head around time-related bugs. This one was a fun opportunity to dive in and get to the bottom of a hairy problem.&lt;/p&gt;
 
 &lt;p&gt;Thanks for reading!&lt;/p&gt;
-</content>
-  </entry>
-  <entry>
-    <id>tag:alextaylor.ca,2022-11-06:/read/writing-neovim-plugins-with-ruby/</id>
-    <title type="html">Writing Neovim plugins with Ruby</title>
-    <published>2022-11-06T00:00:00Z</published>
-    <updated>2022-11-06T00:00:00Z</updated>
-    <link rel="alternate" href="https://alextaylor.ca/read/writing-neovim-plugins-with-ruby/" type="text/html"/>
-    <content type="html">&lt;p&gt;I’ve been using &lt;a href="https://neovim.io/"&gt;Neovim&lt;/a&gt; for years, but the other day I made a delightful discovery: you can write plugins in Ruby! &lt;a href="https://github.com/neovim/neovim-ruby"&gt;There’s even an officially-supported library for it&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;Let’s take it for a spin and see what it can do.&lt;/p&gt;
-
-&lt;h2 id="the-unseen-hand-of-rpc"&gt;
-&lt;a href="#the-unseen-hand-of-rpc"&gt;&lt;/a&gt;The unseen hand of RPC&lt;/h2&gt;
-&lt;p&gt;Neovim’s architecture supports the concept of remote plugins. These can be implemented as a process which receives RPC calls from the editor, and vice-versa.&lt;/p&gt;
-
-&lt;p&gt;neovim-ruby has a &lt;a href="https://github.com/neovim/neovim-ruby#usage"&gt;small example&lt;/a&gt; of how we can start a Ruby process and connect it to a running instance of Neovim. I took it a step further and used &lt;a href="https://github.com/pry/pry"&gt;pry&lt;/a&gt; so I could play around in a REPL:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="c1"&gt;#!/usr/bin/env ruby&lt;/span&gt;
-
-&lt;span class="nb"&gt;require&lt;/span&gt; &lt;span class="s2"&gt;"neovim"&lt;/span&gt;
-&lt;span class="nb"&gt;require&lt;/span&gt; &lt;span class="s2"&gt;"pry"&lt;/span&gt;
-
-&lt;span class="n"&gt;client&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Neovim&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;attach_unix&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"/tmp/nvim.sock"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="nb"&gt;binding&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;pry&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;We can start Neovim and have it listen on the socket we specified…&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;nvim --listen /tmp/nvim.sock
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;… and then boot the Ruby console. And voila! We can drive Neovim from Ruby 🤩&lt;/p&gt;
-
-&lt;p&gt;&lt;img src="/images/neovim-in-ruby.png" alt="" class="pure-img"&gt;&lt;/p&gt;
-
-&lt;p&gt;neovim-ruby gives you a nice object-oriented interface into the editor. Here, &lt;code&gt;client&lt;/code&gt; is Neovim itself, and I can access the currently-visible buffer with &lt;code&gt;get_current_buf&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;This is all well and good, but let’s have some more fun! Can we programatically insert a new line into the buffer? Of course we can:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src="/images/the-unseen-hand-of-rpc.gif" alt="" class="pure-img"&gt;&lt;/p&gt;
-
-&lt;hr&gt;
-
-&lt;h2 id="writing-a-remote-plugin"&gt;
-&lt;a href="#writing-a-remote-plugin"&gt;&lt;/a&gt;Writing a remote plugin&lt;/h2&gt;
-&lt;p&gt;Of course, booting a side process like this is fun, but not very practical. If we really want to drive Neovim with Ruby, we can write a remote plugin.&lt;/p&gt;
-
-&lt;p&gt;neovim-ruby lets us define a vim command as a block which will be called when that command is invoked in the editor. The “hello world” looks like this:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="no"&gt;Neovim&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;plugin&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
-  &lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:HelloWorld&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
-    &lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"echo 'Hello, world! 👋'"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-  &lt;span class="k"&gt;end&lt;/span&gt;
-&lt;span class="k"&gt;end&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;hr&gt;
-
-&lt;p&gt;&lt;img src="/images/neovim-hello-world.gif" alt="" class="pure-img"&gt;&lt;/p&gt;
-
-&lt;p&gt;Just like in our REPL, we’ve got access to the Neovim client itself, as the first argument to the block. If our command took arguments, those would get passed too.&lt;/p&gt;
-
-&lt;h2 id="evalruby-my-first-neovim-plugin"&gt;
-&lt;a href="#evalruby-my-first-neovim-plugin"&gt;&lt;/a&gt;EvalRuby: my first Neovim plugin&lt;/h2&gt;
-&lt;p&gt;Armed with this newfound power, I was thinking of something interesting I could do.&lt;/p&gt;
-
-&lt;p&gt;I always liked the “inline REPL” that Avdi Grimm uses for his &lt;a href="https://graceful.dev/"&gt;Graceful.Dev&lt;/a&gt; (formerly RubyTapas) screencasts. It lets him write a line of code in his editor, where it can be evaluated and returned as a comment. Kind of like this:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
-&lt;span class="c1"&gt;# =&amp;gt; 2&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;That sounds fun. Let’s build it!&lt;/p&gt;
-
-&lt;p&gt;First, we need to define our command. &lt;strong&gt;EvalRuby&lt;/strong&gt; seems like a fitting name.&lt;/p&gt;
-
-&lt;p&gt;I want to be able to select one or more lines to evaluate, so my command will need to work on ranges. According to &lt;a href="https://neovim.io/doc/user/map.html#E177"&gt;the Neovim docs&lt;/a&gt;, we just need to declare this up front:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
-
-&lt;span class="k"&gt;end&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;&lt;code&gt;range_start&lt;/code&gt; and &lt;code&gt;range_end&lt;/code&gt; will be the line numbers of the selection, or they’ll
-be the same if we’re only selecting a single line.&lt;/p&gt;
-
-&lt;p&gt;Next, we need to pull out the content so we can &lt;code&gt;eval&lt;/code&gt; it! neovim-ruby gives us a handy &lt;code&gt;lines&lt;/code&gt; array in the current buffer. Since this array will be zero-indexed, we need to account for that:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
-  &lt;span class="n"&gt;ruby_code&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nvim&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;lines&lt;/span&gt;&lt;span class="p"&gt;[(&lt;/span&gt;&lt;span class="n"&gt;range_start&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;..&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="k"&gt;end&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Now that we’ve got the code, we have a legitimate excuse to use &lt;code&gt;eval&lt;/code&gt;. Hopefully we trust our own input 🤓&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
-  &lt;span class="n"&gt;ruby_code&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nvim&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;lines&lt;/span&gt;&lt;span class="p"&gt;[(&lt;/span&gt;&lt;span class="n"&gt;range_start&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;..&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-  &lt;span class="n"&gt;result&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;begin&lt;/span&gt;
-             &lt;span class="nb"&gt;eval&lt;/span&gt; &lt;span class="n"&gt;ruby_code&lt;/span&gt;
-           &lt;span class="k"&gt;rescue&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;e&lt;/span&gt;
-             &lt;span class="s2"&gt;"! &lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;message&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt; (&lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;class&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;)"&lt;/span&gt;
-           &lt;span class="k"&gt;end&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;To account for syntax errors, or lines that just aren’t Ruby, we can rescue any
-errors and spit that out as a comment, too.&lt;/p&gt;
-
-&lt;p&gt;Now that we’ve got the result, we can close the loop by appending it back
-into our editor below the selection:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;plug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;command&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:EvalRuby&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;range: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;nvim&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
-  &lt;span class="n"&gt;ruby_code&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nvim&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;lines&lt;/span&gt;&lt;span class="p"&gt;[(&lt;/span&gt;&lt;span class="n"&gt;range_start&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;..&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-  &lt;span class="n"&gt;result&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;begin&lt;/span&gt;
-             &lt;span class="nb"&gt;eval&lt;/span&gt; &lt;span class="n"&gt;ruby_code&lt;/span&gt;
-           &lt;span class="k"&gt;rescue&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;e&lt;/span&gt;
-             &lt;span class="s2"&gt;"! &lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;message&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt; (&lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;class&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;)"&lt;/span&gt;
-           &lt;span class="k"&gt;end&lt;/span&gt;
-
-  &lt;span class="n"&gt;nvim&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;get_current_buf&lt;/span&gt;
-    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;append&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;range_end&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"# =&amp;gt; &lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;result&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;inspect&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="k"&gt;end&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;And, behold! It works great 🎉&lt;/p&gt;
-
-&lt;p&gt;&lt;img src="/images/neovim-evalruby.gif" alt="" class="pure-img"&gt;&lt;/p&gt;
-
-&lt;h2 id="conclusion"&gt;
-&lt;a href="#conclusion"&gt;&lt;/a&gt;Conclusion&lt;/h2&gt;
-&lt;p&gt;This was a fun project, and I think I’ll actually get some use out of it, too; I often find myself jumping into IRB while I’m coding to try things out or demonstrate something while I’m pairing.&lt;/p&gt;
-
-&lt;p&gt;Now that I wield this power, I can see myself making all sorts of fun plugins.&lt;/p&gt;
-
-&lt;p&gt;If you want to check out the full code for EvalRuby, &lt;a href="https://gist.github.com/mctaylorpants/04a9353583681f48d90d4ac9f58d3485"&gt;I’ve put it up as a gist!&lt;/a&gt;&lt;/p&gt;
-
 </content>
   </entry>
 </feed>
