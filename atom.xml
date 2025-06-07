@@ -2,13 +2,90 @@
 <feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://alextaylor.ca/">
   <id>https://alextaylor.ca/</id>
   <title>alextaylor.ca</title>
-  <updated>2025-03-24T00:00:00Z</updated>
+  <updated>2025-06-06T00:00:00Z</updated>
   <link rel="alternate" href="https://alextaylor.ca/" type="text/html"/>
   <link rel="self" href="https://alextaylor.ca/atom.xml" type="application/atom+xml"/>
   <author>
     <name>Alex Taylor</name>
     <uri>https://alextaylor.ca</uri>
   </author>
+  <entry>
+    <id>tag:alextaylor.ca,2025-06-06:/read/my-obsidian-workflow/</id>
+    <title type="html">My Obsidian Workflow</title>
+    <published>2025-06-06T00:00:00Z</published>
+    <updated>2025-06-06T00:00:00Z</updated>
+    <link rel="alternate" href="https://alextaylor.ca/read/my-obsidian-workflow/" type="text/html"/>
+    <content type="html">&lt;p&gt;I’ve been using &lt;a href="https://obsidian.md/"&gt;Obsidian&lt;/a&gt; for a few years to keep track of my work notes and tasks. I love how customizable it is, but that can also be a curse: you can end up spending ages configuring it, trying out new plugins, and lose track of why you’re using it in the first place!&lt;/p&gt;
+
+&lt;p&gt;I’ve been actively iterating on my workflow for the past few months and have hit on something that’s been working pretty well for me, so I wanted to capture it.&lt;/p&gt;
+
+&lt;h2 id="toodoo"&gt;
+&lt;a href="#toodoo"&gt;&lt;/a&gt;TOODOO&lt;/h2&gt;
+&lt;p&gt;At the root level of my vault, I have a note called “TOODOO”. (Why the extra Os? Why not!)&lt;/p&gt;
+
+&lt;p&gt;There are two components to this view:&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;A “Project Overview” section&lt;/strong&gt;. I keep a list of the projects I have on the go and what’s next for each of them. I update this each week, and I find it helps me context-switch more quickly between projects when I have a lot on the go.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Tasks for today and for later&lt;/strong&gt;. I use the &lt;a href="https://publish.obsidian.md/tasks/Introduction#Task+management+for+the+Obsidian+knowledge+base"&gt;Tasks plugin&lt;/a&gt; to pull tasks from my daily notes and projects, like so:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;tasks
+
+filter by function task.file.root === '1-- projects/' || \
+  task.file.folder.includes('reflections/daily')
+
+sort by priority, due, done
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I’ve fiddled around a lot with my grouping of tasks, and I’ll probably keep fiddling forever. I go back and forth between “daily + everything else”, “daily, weekly, later”, and other flavours. But I like how easy the Tasks plugin makes it to iterate on these queries.&lt;/p&gt;
+
+&lt;h2 id="starting-each-day-with-a-fresh-page"&gt;
+&lt;a href="#starting-each-day-with-a-fresh-page"&gt;&lt;/a&gt;Starting each day with a fresh “page”&lt;/h2&gt;
+&lt;p&gt;The first thing I do in the morning is create my daily note. It’s my landing pad for what I’m doing, new tasks that come to mind, and other random notes throughout the day. I love it - it’s like turning to a new page in a notebook, free of cruft and full of possibility.&lt;/p&gt;
+
+&lt;p&gt;I use the &lt;a href="https://help.obsidian.md/plugins/daily-notes"&gt;Daily Notes plugin&lt;/a&gt; which helps automate the creation of these notes from a template, and lets me pull up today’s note quickly from the command palette. I’ve iterated a lot on the template; recently I’ve settled on a list of open tasks with today’s due date, a list of tasks I’ve completed, and an open space below.&lt;/p&gt;
+
+&lt;p&gt;Throughout the day, I’ll do a &lt;a href="https://bulletjournal.com/"&gt;Bullet Journal&lt;/a&gt;-esque workflow where I jot down stuff I’m doing. This helps me reflect on what I did that week, and can often help remind me of something I wanted to look into but didn’t have time when it first came up. It’s also a great source of inspiration for my &lt;a href="https://jvns.ca/blog/brag-documents/"&gt;brag document&lt;/a&gt;!&lt;/p&gt;
+
+&lt;p&gt;In my Monday daily note, I’ve recently taken to writing down a quick breakdown of how I want the week to go. Something like:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;**Monday**
+- Timeout bug: add logging, understand how our monitoring works
+
+**Tuesday**
+- Presentation and doc-writing for Project X
+
+**Wednesday**
+- Project Y: groom and prioritize tweak tickets
+
+... etc...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I’ve found it helpful to do this when I’m juggling a lot and need to prioritize, but I’m not ready to break out granular tasks. That’s the beauty of Obsidian: it’s just Markdown, it doesn’t lock you into a certain way of working.&lt;/p&gt;
+
+&lt;h2 id="projects-big-and-small"&gt;
+&lt;a href="#projects-big-and-small"&gt;&lt;/a&gt;Projects, big and small&lt;/h2&gt;
+&lt;p&gt;Any larger initiative I’m working on gets its own note in the &lt;code&gt;projects&lt;/code&gt; folder. I typically keep a work log by date, and use the top of the note to link out to Github/Linear issues, relevant notes, slack channels, PRs, things in Google Docs - basically a collection of bookmarks.&lt;/p&gt;
+
+&lt;p&gt;These notes aren’t just for capital-P Projects, though. Often, I’ll start taking notes on something in my daily note for that day, but it’s something I want to come back to the next day or the next week. When that happens, I’ll pull the notes up into a project note and then link to it from those daily notes.&lt;/p&gt;
+
+&lt;p&gt;For example, I recently switched from vim to &lt;a href="https://www.cursor.com/"&gt;Cursor&lt;/a&gt;, and did a bunch of fiddling and customizing along the way. I found I would be working on something and suddenly miss a shortcut or function from vim, and wonder how to reproduce it, but not want to interrupt my focus to figure it out in the moment. These were getting lost across my various daily notes, so I made a &lt;code&gt;switch to cursor&lt;/code&gt; note where I started keeping a list of all these little issues. When I have time, I pick an issue from the list and fix it. When that list is empty, I’ll move that note to the &lt;code&gt;archives&lt;/code&gt; folder.&lt;/p&gt;
+
+&lt;p&gt;Having an &lt;code&gt;archives&lt;/code&gt; folder helps keep the &lt;code&gt;projects&lt;/code&gt; folder focused, so I can see at-a-glance what I’m working on and thinking about. If I haven’t worked on something in awhile, I just put it in &lt;code&gt;archives&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;If a project gets even bigger than a note, I’ll make a folder for it. I’ll have an index note, usually prefixed with an underscore, that serves as a jumping-off point for whatever other notes I have in that folder.&lt;/p&gt;
+
+&lt;h2 id="conclusion"&gt;
+&lt;a href="#conclusion"&gt;&lt;/a&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;This workflow has really helped me stay on top of things:
+- Starting with an empty daily note helps me start the day with a clear mind
+- My TOODOO note serves as a high-level overview of everything that’s happening
+- Project notes help organize larger and smaller initiatives so I can always pick up where I left off&lt;/p&gt;
+
+&lt;p&gt;Obsidian is the first digital note-taking tool I’ve stuck with for longer than a few months. I’ve been using it for about 3 years. How I use it has evolved over time and will continue to evolve. It’s the flexibility that keeps me using it!&lt;/p&gt;
+</content>
+  </entry>
   <entry>
     <id>tag:alextaylor.ca,2025-03-24:/read/down-a-qmk-rabbit-hole/</id>
     <title type="html">Down a QMK rabbit hole</title>
@@ -433,196 +510,6 @@ select id from notes order by account_id;
 &lt;p&gt;I’ve really started to enjoy the cadence of these quick micro-breaks. One of the downsides is that it makes you extremely aware of the passage of time – especially if you use an app that never ceases to remind you. But overall, I’ve found it works well for me. My eyes certainly thank me for it!&lt;/p&gt;
 
 &lt;p&gt;If you also find yourself in need of more breaks, I’d encourage you to give the 20/20/20 rule a try!&lt;/p&gt;
-</content>
-  </entry>
-  <entry>
-    <id>tag:alextaylor.ca,2023-03-04:/read/adventures-in-time-debugging-a-daylight-saving-bug/</id>
-    <title type="html">Adventures in Time: Debugging a Daylight Saving Bug</title>
-    <published>2023-03-04T00:00:00Z</published>
-    <updated>2023-03-04T00:00:00Z</updated>
-    <link rel="alternate" href="https://alextaylor.ca/read/adventures-in-time-debugging-a-daylight-saving-bug/" type="text/html"/>
-    <content type="html">&lt;p&gt;What’s more fun than bugs? Bugs involving time! And none are so fascinating as bugs involving &lt;em&gt;daylight saving time.&lt;/em&gt;&lt;/p&gt;
-
-&lt;p&gt;With Daylight saving time almost upon us again, I thought it would be fun to revisit this bug my team and I stumbled across last fall.&lt;/p&gt;
-
-&lt;h2 id="once-upon-a-time"&gt;
-&lt;a href="#once-upon-a-time"&gt;&lt;/a&gt;Once upon a time…&lt;/h2&gt;
-&lt;p&gt;When subscribing a customer to a monthly plan in our billing system, we calculate the date of the customer’s next bill by adding 30 days to their current time, and using that to create a subscription on Stripe.&lt;/p&gt;
-
-&lt;p&gt;However, at some point in October, we started to see this fail:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="no"&gt;Stripe&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;InvalidRequestError&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; 
-  &lt;span class="n"&gt;billing_cycle_anchor&lt;/span&gt; &lt;span class="n"&gt;cannot&lt;/span&gt; &lt;span class="n"&gt;be&lt;/span&gt; &lt;span class="n"&gt;later&lt;/span&gt; &lt;span class="n"&gt;than&lt;/span&gt; &lt;span class="k"&gt;next&lt;/span&gt;
-  &lt;span class="n"&gt;natural&lt;/span&gt; &lt;span class="n"&gt;billing&lt;/span&gt; &lt;span class="n"&gt;date&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1669817382&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;plan&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;When comparing the “natural billing date” to the time we sent the request, it was indeed more than 30 days in the future – by exactly an hour. Curious!&lt;/p&gt;
-
-&lt;h2 id="arithmetick-tock-"&gt;
-&lt;a href="#arithmetick-tock-"&gt;&lt;/a&gt;Arithmetick-tock ⏰&lt;/h2&gt;
-
-&lt;p&gt;In the code, we were doing something roughly like this to calculate the billing date:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;subscription&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;started_at&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;days&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;&lt;code&gt;started_at&lt;/code&gt; is a &lt;code&gt;Time&lt;/code&gt; object, and we’re using the &lt;code&gt;ActiveSupport::Duration&lt;/code&gt; helpers to advance that time by exactly 30 days. So what’s the issue?&lt;/p&gt;
-
-&lt;p&gt;I fired up a console and started poking at this particular line of code to learn how it behaved.&lt;/p&gt;
-
-&lt;p&gt;First, a sanity-check: I want to make sure I know that &lt;code&gt;.days&lt;/code&gt; is giving me what I expect:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt; &lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;0700&lt;/span&gt;
-
-&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;24&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt; &lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;0700&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Ok, good! I get the same answer if I add the total number of seconds in a day. Makes sense.&lt;/p&gt;
-
-&lt;p&gt;Now, what happens if I do the same thing, but add 30 days?&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;days&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;14&lt;/span&gt; &lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
-
-&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-10-15 12:00:00 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;30&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;24&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;14&lt;/span&gt; &lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Aha! There’s our bug. Depending on whether I use a &lt;code&gt;Duration&lt;/code&gt; object or plain old seconds, I get a different answer. This feels like a daylight saving issue, since we’re crossing the boundary here, and our two times disagree by &lt;em&gt;exactly&lt;/em&gt; an hour.&lt;/p&gt;
-
-&lt;p&gt;Next, I want to confirm that this has something to do with crossing the daylight saving boundary. Let’s try the same test, but using a time that’s right before the boundary. Daylight saving ended on November 6, 2022 at 2am, so let’s start from 1 second before and add 1 day:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;07&lt;/span&gt; &lt;span class="mo"&gt;01&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
-
-&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;24&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;60&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;07&lt;/span&gt; &lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;59&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Still behaves the same. So we can confidently say that &lt;strong&gt;when crossing the DST boundary, adding a Duration to a timestamp yields a different time than adding a number of seconds.&lt;/strong&gt;&lt;/p&gt;
-
-&lt;h2 id="testing-the-hypothesis"&gt;
-&lt;a href="#testing-the-hypothesis"&gt;&lt;/a&gt;Testing the hypothesis&lt;/h2&gt;
-
-&lt;p&gt;So which of the two answers above is correct?&lt;/p&gt;
-
-&lt;p&gt;It’s easier to answer that question with a shorter duration, so let’s work with plain seconds:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2022&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mo"&gt;06&lt;/span&gt; &lt;span class="mo"&gt;01&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;00&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mo"&gt;04&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0800&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;This makes sense:&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;We added 5 seconds to get to 02:00:04.&lt;/li&gt;
-  &lt;li&gt;Since daylight saving ended at 2am, we roll the clock back by 1 hour.&lt;/li&gt;
-  &lt;li&gt;We end up with 01:00:04, in GMT -8 instead of GMT -7.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Numbers don’t lie, but it seems like &lt;code&gt;ActiveSupport::Duration&lt;/code&gt; may be stretching the truth in this case.&lt;/p&gt;
-
-&lt;p&gt;So why does &lt;code&gt;1.day&lt;/code&gt; behave so differently?&lt;/p&gt;
-
-&lt;h2 id="down-the-rabbit-hole"&gt;
-&lt;a href="#down-the-rabbit-hole"&gt;&lt;/a&gt;Down the rabbit hole&lt;/h2&gt;
-
-&lt;p&gt;In order to explain the bug, we need some context on what happens when we add these two values together. Remember, since everything in Ruby is an object, an operation like &lt;code&gt;2 + 1&lt;/code&gt;  is really invoking the &lt;code&gt;+&lt;/code&gt; method on &lt;code&gt;2&lt;/code&gt;, and passing &lt;code&gt;1&lt;/code&gt; as an argument.&lt;/p&gt;
-
-&lt;p&gt;ActiveSupport implements methods like &lt;code&gt;+&lt;/code&gt; on &lt;code&gt;Duration&lt;/code&gt; objects so that you can add two of them together:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt; &lt;span class="n"&gt;days&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;That’s all fine and good when you have two &lt;code&gt;Duration&lt;/code&gt; objects, or at least when a &lt;code&gt;Duration&lt;/code&gt; object is the receiver (on the left-hand side of the operation). But we’ve got a plain ol’ Ruby class on the left:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;parse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"2022-11-06 01:59:59 -0700"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Here, we know the &lt;code&gt;+&lt;/code&gt; method is being invoked on our &lt;code&gt;Time&lt;/code&gt; object, yet somehow it knows what to do with an &lt;code&gt;ActiveSupport::Duration&lt;/code&gt;. How is that possible? Let’s introspect &lt;code&gt;+&lt;/code&gt; and see where it takes us:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="vg"&gt;$&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;now&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;method&lt;/span&gt;&lt;span class="p"&gt;(:&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="c1"&gt;#&amp;lt;Method: Time#+(plus_with_duration)(other) /ruby/gems/2.7.0/gems/activesupport-5.2.8.1/lib/active_support/core_ext/time/calculations.rb:261&amp;gt;&lt;/span&gt;
-&lt;span class="c1"&gt;# active_support/core_ext/time/calculations.rb:261&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Hey, look! A monkey patch! 🙈&lt;/p&gt;
-
-&lt;p&gt;&lt;a href="https://github.com/rails/rails/blob/8030cff808657faa44828de001cd3b80364597de/activesupport/lib/active_support/core_ext/time/calculations.rb#L261-L269"&gt;Let’s peek at that code&lt;/a&gt;:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;plus_with_duration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;#:nodoc:&lt;/span&gt;
-  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="no"&gt;ActiveSupport&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Duration&lt;/span&gt; &lt;span class="o"&gt;===&lt;/span&gt; &lt;span class="n"&gt;other&lt;/span&gt;
-    &lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;since&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;self&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-  &lt;span class="k"&gt;else&lt;/span&gt;
-    &lt;span class="n"&gt;plus_without_duration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-  &lt;span class="k"&gt;end&lt;/span&gt;
-&lt;span class="k"&gt;end&lt;/span&gt;
-&lt;span class="kp"&gt;alias_method&lt;/span&gt; &lt;span class="ss"&gt;:plus_without_duration&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;
-&lt;span class="kp"&gt;alias_method&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:plus_with_duration&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Here, ActiveSupport has hooked into &lt;code&gt;+&lt;/code&gt; to customize the path taken if the value being added is a &lt;code&gt;Duration&lt;/code&gt; class. Otherwise, we can fall back on the original &lt;code&gt;+&lt;/code&gt; method.&lt;/p&gt;
-
-&lt;p&gt;This is the point where I break out a debugger like &lt;a href="https://github.com/pry/pry"&gt;pry&lt;/a&gt; to step through the code and see where it takes me. After &lt;code&gt;step&lt;/code&gt;ping into &lt;code&gt;#since&lt;/code&gt; and following the code path, &lt;a href="https://github.com/rails/rails/blob/8030cff808657faa44828de001cd3b80364597de/activesupport/lib/active_support/core_ext/time/calculations.rb#L175"&gt;I end up here&lt;/a&gt;:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;time_advanced_by_date&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;change&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;year: &lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;month: &lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;day: &lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;day&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;Well, that’s interesting. Just looking at that method call, I can see that we’re dropping the hour, minute and second. And since I’m investigating a bug relating to an incorrect hour offset, this really piques my curiosity.&lt;/p&gt;
-
-&lt;p&gt;Let’s step down &lt;a href="https://github.com/rails/rails/blob/8030cff808657faa44828de001cd3b80364597de/activesupport/lib/active_support/core_ext/time/calculations.rb#L120"&gt;one more level into &lt;code&gt;#change&lt;/code&gt;&lt;/a&gt;, which lives in another monkey-patch on the &lt;code&gt;Time&lt;/code&gt; class:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;change&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="n"&gt;new_year&lt;/span&gt;   &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;year&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="n"&gt;new_month&lt;/span&gt;  &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;month&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="n"&gt;new_day&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;day&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="n"&gt;new_hour&lt;/span&gt;   &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hour&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="n"&gt;new_min&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="p"&gt;?&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;min&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="n"&gt;new_sec&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:sec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:min&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt; &lt;span class="p"&gt;?&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;sec&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="n"&gt;new_offset&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:offset&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kp"&gt;nil&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-    &lt;span class="o"&gt;...&lt;/span&gt;
-
-    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;new_offset&lt;/span&gt;
-      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_offset&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="k"&gt;elsif&lt;/span&gt; &lt;span class="n"&gt;utc?&lt;/span&gt;
-      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;utc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="k"&gt;elsif&lt;/span&gt; &lt;span class="n"&gt;zone&lt;/span&gt;
-      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;local&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="k"&gt;else&lt;/span&gt;
-      &lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_year&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_month&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_min&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;new_sec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;utc_offset&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="k"&gt;end&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;&lt;code&gt;change&lt;/code&gt; is finally the method which returns a new &lt;code&gt;Time&lt;/code&gt; object based on the results of the operation. Ultimately, we’re calling some variant of &lt;code&gt;Time.new&lt;/code&gt;, providing all-new values for the year, month, etc.&lt;/p&gt;
-
-&lt;p&gt;And where do we get all these new values?&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;new_hour&lt;/span&gt;   &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;options&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;fetch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hour&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;If we didn’t pass it in from the arguments, then we fall back &lt;em&gt;to the existing &lt;code&gt;hour&lt;/code&gt;, &lt;code&gt;min&lt;/code&gt; and &lt;code&gt;sec&lt;/code&gt; value on the current &lt;code&gt;Time&lt;/code&gt; object.&lt;/em&gt;&lt;/p&gt;
-
-&lt;p&gt;In other words, given our initial &lt;code&gt;Time&lt;/code&gt; object of &lt;code&gt;Time.parse("2022-11-06 01:59:59 -0700")&lt;/code&gt;, we’re going to add &lt;code&gt;1.day&lt;/code&gt; to the date only, then pin &lt;code&gt;01:59:59&lt;/code&gt; on the end of it.&lt;/p&gt;
-
-&lt;p&gt;And there’s our bug!&lt;/p&gt;
-
-&lt;h2 id="the-end-or-is-it"&gt;
-&lt;a href="#the-end-or-is-it"&gt;&lt;/a&gt;The end… or is it?&lt;/h2&gt;
-
-&lt;p&gt;Ultimately, the workaround on our side was a simple 5-character change: do our math with seconds instead of a &lt;code&gt;Duration&lt;/code&gt; object:&lt;/p&gt;
-
-&lt;div class="language-ruby highlighter-rouge"&gt;&lt;div class="highlight"&gt;&lt;pre class="highlight"&gt;&lt;code&gt;&lt;span class="n"&gt;subscription&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;started_at&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;days&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_i&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;p&gt;I was also curious to see if others had run into it, and sure enough, &lt;a href="https://github.com/rails/rails/issues/45055"&gt;this bug had been reported a few months prior&lt;/a&gt;. It was &lt;a href="https://github.com/rails/rails/pull/46251"&gt;fixed shortly afterwards&lt;/a&gt; in edge Rails, although it does seem like there’s still some discrepancies when doing arithmetic around the DST boundary. My takeaway: when in doubt, stick with plain ol’ seconds.&lt;/p&gt;
-
-&lt;p&gt;I always have a hard … ahem, &lt;em&gt;time&lt;/em&gt; … wrapping my head around time-related bugs. This one was a fun opportunity to dive in and get to the bottom of a hairy problem.&lt;/p&gt;
-
-&lt;p&gt;Thanks for reading!&lt;/p&gt;
 </content>
   </entry>
 </feed>
